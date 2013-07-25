@@ -1,0 +1,6 @@
+<% if (prevURL || nextURL) { %>
+<hr/>
+<% if (prevURL) { %><a href="<%= prevURL %>"><%= prevTITLE %></a><% } %>
+<% if (nextURL) { %><a href="<%= nextURL %>"><%= nextTITLE %></a><% } %>
+<hr/>
+<% } %>

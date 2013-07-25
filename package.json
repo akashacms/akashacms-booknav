@@ -1,0 +1,21 @@
+{
+  "author": {
+    "name": "David Herron",
+    "email": "david@davidherron.com",
+    "url": "http://nodejs.davidherron.com"
+  },
+  "name": "akashacms-booknav",
+  "description": "A plugin for AkashaCMS that generates book style navigation frames",
+  "homepage": "https://github.com/robogeek/akashacms-booknav",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/robogeek/akashacms-booknav.git"
+  },
+  "version": "0.1.1",
+  "engines": {
+    "node": ">=0.10.1"
+  },
+  "dependencies": {
+    "async": ">=0.1.22"
+  }
+}
