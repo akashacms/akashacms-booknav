@@ -17,14 +17,13 @@
  *  limitations under the License.
  */
 
-var akasha   = require('akashacms');
 var path     = require('path');
 var util     = require('util');
 
 /**
  * Add ourselves to the config data.
  **/
-module.exports.config = function(config) {
+module.exports.config = function(akasha, config) {
     config.root_partials.push(path.join(__dirname, 'partials'));
     config.funcs.siblings = function(arg, callback) {
         var siblings = akasha.findSiblings(config, arg.fileName);
