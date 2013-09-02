@@ -1,0 +1,7 @@
+<div id="booknav-treenav-wrapper">
+    <ul><% for (var i in tree) { %>
+        <li>
+            <a href="<%= tree[i].urlForFile %>"><%= tree[i].frontmatter.title %></a>
+        </li>
+    <% } %></ul>
+</div>

@@ -1,6 +1,7 @@
-<% if (prevURL || nextURL) { %>
+<% if (prevURL || upURL || nextURL) { %>
 <hr/>
 <% if (prevURL) { %><a href="<%= prevURL %>"><%= prevTITLE %></a><% } %>
+<% if (upURL  ) {%> <a href="<%= upURL   %>">up</a> <% } %>
 <% if (nextURL) { %><a href="<%= nextURL %>"><%= nextTITLE %></a><% } %>
 <hr/>
 <% } %>
