@@ -94,16 +94,15 @@ module.exports.config = function(akasha, config) {
     }
     
     config.funcs.bookChildTree = function(arg, callback) {
-        
         var docDirPath = path.dirname(arg.documentPath);
         // util.log('bookChildTree documentPath='+ arg.documentPath +' docDirPath='+ docDirPath);
         var childTree = [];
         akasha.eachDocument(config, function(entry) {
             var docPath = entry.path;
-            // util.log(docPath);
-            if (akasha.supportedForHtml(docPath) && docPath.indexOf(docDirPath) === 0) {
-                var documentPath = docPath.substring(docDirPath.length + 1);
-                // util.log(documentPath);
+            // util.log('docPath='+docPath);
+            if (akasha.supportedForHtml(docPath) && (docPath.indexOf(docDirPath) === 0 || docDirPath === '.')) {
+                var documentPath = docDirPath !== '.' ? docPath.substring(docDirPath.length + 1) : docPath;
+                // util.log('documentPath='+documentPath);
                 if (documentPath.indexOf('/') >= 0) {
                     var components = documentPath.split('/');
                     // util.log(util.inspect(components));
@@ -117,14 +116,14 @@ module.exports.config = function(akasha, config) {
                             if (akasha.isIndexHtml(entry.path)) {
                                 dirEntry.title = entry.frontmatter.title;
                                 dirEntry.path = entry.path;
-                                dirEntry.teaser = entry.teaser ? entry.teaser : undefined;
+                                dirEntry.teaser = entry.frontmatter.teaser ? entry.frontmatter.teaser : undefined;
                             } else if (akasha.supportedForHtml(entry.path)) {
                                 dirEntry.entries.push({
                                     type: 'doc',
                                     path: entry.path,
                                     name: cmp,
                                     title: entry.frontmatter.title,
-                                    teaser: entry.teaser ? entry.teaser : undefined,
+                                    teaser: entry.frontmatter.teaser ? entry.frontmatter.teaser : undefined,
                                     entry: entry
                                 });
                             }
@@ -152,7 +151,7 @@ module.exports.config = function(akasha, config) {
                             path: entry.path,
                             name: entry.path,
                             title: entry.frontmatter.title,
-                            teaser: entry.teaser ? entry.teaser : undefined,
+                            teaser: entry.frontmatter.teaser ? entry.frontmatter.teaser : undefined,
                             entry: entry
                         });
                     }
