@@ -94,6 +94,9 @@ module.exports.config = function(akasha, config) {
     }
     
     config.funcs.bookChildTree = function(arg, callback) {
+        if (!arg.template) {
+            arg.template = "booknav-tree-nav2.html.ejs";
+        }
         var docDirPath = path.dirname(arg.documentPath);
         // util.log('bookChildTree documentPath='+ arg.documentPath +' docDirPath='+ docDirPath);
         var childTree = [];
@@ -186,7 +189,7 @@ module.exports.config = function(akasha, config) {
         };
         
         var renderSubTree = function(dir) {
-            return akasha.partialSync(config, "booknav-tree-nav2.html.ejs", {
+            return akasha.partialSync(config, arg.template, {
                 tree: dir.entries,
                 urlForDoc: urlForDoc,
                 urlForDir: urlForDir,
@@ -198,7 +201,7 @@ module.exports.config = function(akasha, config) {
         
         // Rendering of the tree starts here, and recursively uses the above
         // two functions to render sub-portions of the tree
-        var val = akasha.partialSync(config, "booknav-tree-nav2.html.ejs", {
+        var val = akasha.partialSync(config, arg.template, {
             tree: childTree,
             urlForDoc: urlForDoc,
             urlForDir: urlForDir,
@@ -234,6 +237,11 @@ module.exports.config = function(akasha, config) {
         ]*/
     }
     
+    config.funcs.bookChildTreeBootstrap = function(arg, callback) {
+        arg.template = "booknav-tree-nav2-bootstrap.html.ejs";
+        return config.funcs.bookChildTree(arg, callback);
+    }
+        
     config.funcs.prevNextBar = function(arg, callback) {
         var entry = akasha.getFileEntry(config.root_docs, arg.documentPath);
         var bnavUpFN   = getUpFileName(entry);
