@@ -84,18 +84,18 @@ var findDirInEntryList = function(entryList, cmp) {
 module.exports.config = function(akasha, config) {
     config.root_partials.push(path.join(__dirname, 'partials'));
     
-    config.funcs.bookTreeNav = function(arg, callback) {
+    /** UNUSED - config.funcs.bookTreeNav = function(arg, callback) {
         var tree = gatherBookTree(akasha, config, arg.documentPath);
         var val = akasha.partialSync(config, "booknav-tree-nav.html.ejs", {
             tree: tree
         });
         if (callback) callback(undefined, val);
         return val;
-    }
+    }*/
     
     config.funcs.bookChildTree = function(arg, callback) {
         if (!arg.template) {
-            arg.template = "booknav-tree-nav2.html.ejs";
+            arg.template = "booknav-child-tree.html.ejs";
         }
         var docDirPath = path.dirname(arg.documentPath);
         // util.log('bookChildTree documentPath='+ arg.documentPath +' docDirPath='+ docDirPath);
@@ -237,10 +237,10 @@ module.exports.config = function(akasha, config) {
         ]*/
     }
     
-    config.funcs.bookChildTreeBootstrap = function(arg, callback) {
+    /*config.funcs.bookChildTreeBootstrap = function(arg, callback) {
         arg.template = "booknav-tree-nav2-bootstrap.html.ejs";
         return config.funcs.bookChildTree(arg, callback);
-    }
+    }*/
         
     config.funcs.prevNextBar = function(arg, callback) {
         var entry = akasha.getFileEntry(config.root_docs, arg.documentPath);
