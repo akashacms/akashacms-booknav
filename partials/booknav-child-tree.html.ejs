@@ -6,8 +6,12 @@
         </li><%
     } else {
         %><li>
-            <a href="<%= urlForDir(tree[i]) %>"><%= nameForDir(tree[i]) %></a>
-            <% if (tree[i].teaser) { %><%= tree[i].teaser %><% } %>
+            <%
+            var url = urlForDir(tree[i]);
+            if (url !== "undefined") {
+                %><a href="<%= url %>"><%= nameForDir(tree[i]) %></a><%
+                if (tree[i].teaser) { %><%= tree[i].teaser %><% }
+            } %>
             <%- renderSubTree(tree[i]) %>
         </li><%
     } %>
