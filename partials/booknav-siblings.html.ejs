@@ -1,7 +1,7 @@
 <div id="booknav-siblings-wrapper">
     <ul><% for (var i in siblings) { %>
         <li>
-            <a href="<%= siblings[i].urlForFile %>"><%= siblings[i].frontmatter.title %></a>
+            <a href="<%= siblings[i].urlForFile %>"><%= siblings[i].frontmatter.yaml.title %></a>
         </li>
     <% } %></ul>
 </div>

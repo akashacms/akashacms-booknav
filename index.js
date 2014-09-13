@@ -22,22 +22,25 @@ var util     = require('util');
 
 var getPrevFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
-        && entry.frontmatter.hasOwnProperty("booknav-prev"))
-        return entry.frontmatter["booknav-prev"];
+        && entry.frontmatter.hasOwnProperty("yaml")
+        && entry.frontmatter.yaml.hasOwnProperty("booknav-prev"))
+        return entry.frontmatter.yaml["booknav-prev"];
     else
         return undefined;
 }
 var getNextFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
-        && entry.frontmatter.hasOwnProperty("booknav-next"))
-        return entry.frontmatter["booknav-next"];
+        && entry.frontmatter.hasOwnProperty("yaml")
+        && entry.frontmatter.yaml.hasOwnProperty("booknav-next"))
+        return entry.frontmatter.yaml["booknav-next"];
     else
         return undefined;
 }
 var getUpFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
-        && entry.frontmatter.hasOwnProperty("booknav-up"))
-        return entry.frontmatter["booknav-up"];
+        && entry.frontmatter.hasOwnProperty("yaml")
+        && entry.frontmatter.yaml.hasOwnProperty("booknav-up"))
+        return entry.frontmatter.yaml["booknav-up"];
     else
         return undefined;
 }
@@ -117,16 +120,20 @@ module.exports.config = function(akasha, config) {
                             // The last component is going to be the file name
                             // util.log('pushing '+ entry.path +' to dirEntry '+ util.inspect(dirEntry));
                             if (akasha.isIndexHtml(entry.path)) {
-                                dirEntry.title = entry.frontmatter.title;
+                                dirEntry.title = entry.frontmatter.yaml.title;
                                 dirEntry.path = entry.path;
-                                dirEntry.teaser = entry.frontmatter.teaser ? entry.frontmatter.teaser : undefined;
+                                dirEntry.teaser = entry.frontmatter.yaml.teaser
+                                                ? entry.frontmatter.yaml.teaser
+                                                : undefined;
                             } else if (akasha.supportedForHtml(entry.path)) {
                                 dirEntry.entries.push({
                                     type: 'doc',
                                     path: entry.path,
                                     name: cmp,
-                                    title: entry.frontmatter.title,
-                                    teaser: entry.frontmatter.teaser ? entry.frontmatter.teaser : undefined,
+                                    title: entry.frontmatter.yaml.title,
+                                    teaser: entry.frontmatter.yaml.teaser
+                                          ? entry.frontmatter.yaml.teaser
+                                          : undefined,
                                     entry: entry
                                 });
                             }
@@ -153,8 +160,10 @@ module.exports.config = function(akasha, config) {
                             type: 'doc',
                             path: entry.path,
                             name: entry.path,
-                            title: entry.frontmatter.title,
-                            teaser: entry.frontmatter.teaser ? entry.frontmatter.teaser : undefined,
+                            title: entry.frontmatter.yaml.title,
+                            teaser: entry.frontmatter.yaml.teaser
+                                  ? entry.frontmatter.yaml.teaser
+                                  : undefined,
                             entry: entry
                         });
                     }
@@ -256,9 +265,9 @@ module.exports.config = function(akasha, config) {
         var val = akasha.partialSync(config, "booknav-prevnext.html.ejs", {
             upURL:     bnavUp   ? bnavUp.urlForFile          : undefined,
             prevURL:   bnavPrev ? bnavPrev.urlForFile        : undefined,
-            prevTITLE: bnavPrev ? bnavPrev.frontmatter.title : undefined,
+            prevTITLE: bnavPrev ? bnavPrev.frontmatter.yaml.title : undefined,
             nextURL:   bnavNext ? bnavNext.urlForFile        : undefined,
-            nextTITLE: bnavNext ? bnavNext.frontmatter.title : undefined
+            nextTITLE: bnavNext ? bnavNext.frontmatter.yaml.title : undefined
         });
         if (callback) callback(undefined, val);
         return val;
