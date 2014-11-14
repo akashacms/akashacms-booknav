@@ -46,7 +46,7 @@ var getUpFileName = function(entry) {
 }
 
 
-var gatherBookTree = function(akasha, config, documentPath) {
+/*** UNUSED? var gatherBookTree = function(akasha, config, documentPath) {
     var tree = [];
     var thisEntry = akasha.readDocumentEntry(config, documentPath);
     var prevEntry = undefined;
@@ -70,7 +70,7 @@ var gatherBookTree = function(akasha, config, documentPath) {
     //                gatherBookTree(document)
     //                thisEntry.bookNavChildren
     return tree;
-}
+} */
 
 var findDirInEntryList = function(entryList, cmp) {
     for (var ch = 0; ch < entryList.length; ch++) {
@@ -160,7 +160,9 @@ module.exports.config = function(akasha, config) {
                             type: 'doc',
                             path: entry.path,
                             name: entry.path,
-                            title: entry.frontmatter.yaml.title,
+                            title: entry.frontmatter.yaml.title
+                                  ? entry.frontmatter.yaml.title
+                                  : undefined,
                             teaser: entry.frontmatter.yaml.teaser
                                   ? entry.frontmatter.yaml.teaser
                                   : undefined,
