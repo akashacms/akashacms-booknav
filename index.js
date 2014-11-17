@@ -120,7 +120,9 @@ module.exports.config = function(akasha, config) {
                             // The last component is going to be the file name
                             // util.log('pushing '+ entry.path +' to dirEntry '+ util.inspect(dirEntry));
                             if (akasha.isIndexHtml(entry.path)) {
-                                dirEntry.title = entry.frontmatter.yaml.title;
+                                dirEntry.title = entry.frontmatter.yaml.title
+                                          	   ? entry.frontmatter.yaml.title
+                                          	   : undefined;
                                 dirEntry.path = entry.path;
                                 dirEntry.teaser = entry.frontmatter.yaml.teaser
                                                 ? entry.frontmatter.yaml.teaser
@@ -130,7 +132,9 @@ module.exports.config = function(akasha, config) {
                                     type: 'doc',
                                     path: entry.path,
                                     name: cmp,
-                                    title: entry.frontmatter.yaml.title,
+                                    title: entry.frontmatter.yaml.title
+                                          ? entry.frontmatter.yaml.title
+                                          : undefined,
                                     teaser: entry.frontmatter.yaml.teaser
                                           ? entry.frontmatter.yaml.teaser
                                           : undefined,
