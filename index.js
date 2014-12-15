@@ -204,7 +204,7 @@ module.exports.config = function(akasha, config) {
         };
         
         var renderSubTree = function(dir) {
-            return akasha.partialSync(config, arg.template, {
+            return akasha.partialSync(arg.template, {
                 tree: dir.entries,
                 urlForDoc: urlForDoc,
                 urlForDir: urlForDir,
@@ -216,7 +216,7 @@ module.exports.config = function(akasha, config) {
         
         // Rendering of the tree starts here, and recursively uses the above
         // two functions to render sub-portions of the tree
-        var val = akasha.partialSync(config, arg.template, {
+        var val = akasha.partialSync(arg.template, {
             tree: childTree,
             urlForDoc: urlForDoc,
             urlForDir: urlForDir,
@@ -268,7 +268,7 @@ module.exports.config = function(akasha, config) {
         if (bnavUp)   bnavUp.urlForFile   = akasha.urlForFile(bnavUp.path);
         if (bnavPrev) bnavPrev.urlForFile = akasha.urlForFile(bnavPrev.path);
         if (bnavNext) bnavNext.urlForFile = akasha.urlForFile(bnavNext.path);
-        var val = akasha.partialSync(config, "booknav-prevnext.html.ejs", {
+        var val = akasha.partialSync("booknav-prevnext.html.ejs", {
             upURL:     bnavUp   ? bnavUp.urlForFile          : undefined,
             prevURL:   bnavPrev ? bnavPrev.urlForFile        : undefined,
             prevTITLE: bnavPrev ? bnavPrev.frontmatter.yaml.title : undefined,
