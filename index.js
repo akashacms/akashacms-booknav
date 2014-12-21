@@ -20,6 +20,8 @@
 var path     = require('path');
 var util     = require('util');
 
+var logger;
+
 var getPrevFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
         && entry.frontmatter.hasOwnProperty("yaml")
@@ -87,6 +89,8 @@ var findDirInEntryList = function(entryList, cmp) {
 module.exports.config = function(akasha, config) {
     config.root_partials.push(path.join(__dirname, 'partials'));
     
+    logger = akasha.getLogger("booknav");
+    
     /** UNUSED - config.funcs.bookTreeNav = function(arg, callback) {
         var tree = gatherBookTree(akasha, config, arg.documentPath);
         var val = akasha.partialSync(config, "booknav-tree-nav.html.ejs", {
@@ -100,6 +104,8 @@ module.exports.config = function(akasha, config) {
         if (!arg.template) {
             arg.template = "booknav-child-tree.html.ejs";
         }
+        // logger.trace('bookChildTree '+ util.inspect(arg));
+        
         var docDirPath = path.dirname(arg.documentPath);
         // util.log('bookChildTree documentPath='+ arg.documentPath +' docDirPath='+ docDirPath);
         var childTree = [];
@@ -138,7 +144,10 @@ module.exports.config = function(akasha, config) {
                                     teaser: entry.frontmatter.yaml.teaser
                                           ? entry.frontmatter.yaml.teaser
                                           : undefined,
-                                    entry: entry
+                                    entry: entry,
+									youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
+										   ? entry.frontmatter.yaml.youtubeThumbnail
+										   : undefined
                                 });
                             }
                         } else {
@@ -170,7 +179,10 @@ module.exports.config = function(akasha, config) {
                             teaser: entry.frontmatter.yaml.teaser
                                   ? entry.frontmatter.yaml.teaser
                                   : undefined,
-                            entry: entry
+                            entry: entry,
+                            youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
+                            	   ? entry.frontmatter.yaml.youtubeThumbnail
+                            	   : undefined
                         });
                     }
                 }
@@ -213,6 +225,7 @@ module.exports.config = function(akasha, config) {
             });
         };
         
+        // util.log(util.inspect(childTree));
         
         // Rendering of the tree starts here, and recursively uses the above
         // two functions to render sub-portions of the tree
