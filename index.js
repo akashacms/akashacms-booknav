@@ -180,8 +180,8 @@ module.exports.config = function(akasha, config) {
                                   ? entry.frontmatter.yaml.teaser
                                   : undefined,
                             entry: entry,
-                            youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
-                            	   ? entry.frontmatter.yaml.youtubeThumbnail
+                            videoThumbnail: entry.frontmatter.yaml.videoThumbnail
+                            	   ? entry.frontmatter.yaml.videoThumbnail
                             	   : undefined
                         });
                     }
