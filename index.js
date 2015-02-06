@@ -19,7 +19,10 @@
 
 var path     = require('path');
 var util     = require('util');
+var async    = require('async');
 
+var akasha;
+var config;
 var logger;
 
 var getPrevFileName = function(entry) {
@@ -86,7 +89,9 @@ var findDirInEntryList = function(entryList, cmp) {
 /**
  * Add ourselves to the config data.
  **/
-module.exports.config = function(akasha, config) {
+module.exports.config = function(_akasha, _config) {
+	akasha = _akasha;
+	config = _config;
     config.root_partials.push(path.join(__dirname, 'partials'));
     
     logger = akasha.getLogger("booknav");
@@ -100,7 +105,7 @@ module.exports.config = function(akasha, config) {
         return val;
     }*/
     
-    config.funcs.bookChildTree = function(arg, callback) {
+    /* config.funcs.bookChildTree = function(arg, callback) {
         if (!arg.template) {
             arg.template = "booknav-child-tree.html.ejs";
         }
@@ -198,7 +203,7 @@ module.exports.config = function(akasha, config) {
                 }
             }
         }
-        dumpTree(childTree); */
+        dumpTree(childTree); * /
         
         // These are two local functions used during rendering of the tree
         var urlForDoc = function(doc) {
@@ -262,8 +267,8 @@ module.exports.config = function(akasha, config) {
             dir { path element, [
                 file {path}, ...
             ]}
-        ]*/
-    }
+        ]* /
+    }; */
     
     /*config.funcs.bookChildTreeBootstrap = function(arg, callback) {
         arg.template = "booknav-tree-nav2-bootstrap.html.ejs";
@@ -290,5 +295,190 @@ module.exports.config = function(akasha, config) {
         });
         if (callback) callback(undefined, val);
         return val;
-    }
-}
+    };
+	return module.exports;
+};
+
+module.exports.mahabhuta = [
+	function($, metadata, dirty, done) {
+		var elements = [];
+		logger.trace('book-child-tree');
+		$('book-child-tree').each(function(i, elem) { elements.push(elem); });
+		async.eachSeries(elements, function(element, next) {
+			// logger.info(element.name);
+			
+			var docDirPath = path.dirname(metadata.documentPath); // path.dirname(arg.documentPath);
+			// util.log('bookChildTree documentPath='+ metadata.documentPath +' docDirPath='+ docDirPath);
+			var childTree = [];
+			akasha.eachDocument(config, function(entry) {
+				var docPath = entry.path;
+				// util.log('docPath='+docPath);
+				if (akasha.supportedForHtml(docPath) && (docPath.indexOf(docDirPath) === 0 || docDirPath === '.')) {
+					var documentPath = docDirPath !== '.' ? docPath.substring(docDirPath.length + 1) : docPath;
+					// util.log('documentPath='+documentPath);
+					if (documentPath.indexOf('/') >= 0) {
+						var components = documentPath.split('/');
+						// util.log(util.inspect(components));
+						var entryList = childTree;
+						var dirEntry = undefined;
+						for (var i = 0; i < components.length; i++) {
+							var cmp = components[i];
+							if (i === (components.length - 1)) {
+								// The last component is going to be the file name
+								// util.log('pushing '+ entry.path +' to dirEntry '+ util.inspect(dirEntry));
+								if (akasha.isIndexHtml(entry.path)) {
+									dirEntry.title = entry.frontmatter.yaml.title
+												   ? entry.frontmatter.yaml.title
+												   : undefined;
+									dirEntry.path = entry.path;
+									dirEntry.teaser = entry.frontmatter.yaml.teaser
+													? entry.frontmatter.yaml.teaser
+													: undefined;
+								} else if (akasha.supportedForHtml(entry.path)) {
+									dirEntry.entries.push({
+										type: 'doc',
+										path: entry.path,
+										name: cmp,
+										title: entry.frontmatter.yaml.title
+											  ? entry.frontmatter.yaml.title
+											  : undefined,
+										teaser: entry.frontmatter.yaml.teaser
+											  ? entry.frontmatter.yaml.teaser
+											  : undefined,
+										entry: entry,
+										youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
+											   ? entry.frontmatter.yaml.youtubeThumbnail
+											   : undefined,
+										videoThumbnail: entry.frontmatter.yaml.videoThumbnail
+											   ? entry.frontmatter.yaml.videoThumbnail
+											   : undefined
+									});
+								}
+							} else {
+								// Every other component is an intermediate directory name
+								var de = findDirInEntryList(entryList, cmp);
+								if (de) {
+									dirEntry = de;
+									entryList = dirEntry.entries;
+								} else {
+									dirEntry = {
+										type: 'dir',
+										name: cmp,
+										entries: []
+									};
+									entryList.push(dirEntry);
+									entryList = dirEntry.entries;
+								}
+							}
+						}
+					} else {
+						if (!akasha.isIndexHtml(entry.path)) {
+							childTree.push({
+								type: 'doc',
+								path: entry.path,
+								name: entry.path,
+								title: entry.frontmatter.yaml.title
+									  ? entry.frontmatter.yaml.title
+									  : undefined,
+								teaser: entry.frontmatter.yaml.teaser
+									  ? entry.frontmatter.yaml.teaser
+									  : undefined,
+								entry: entry,
+								videoThumbnail: entry.frontmatter.yaml.videoThumbnail
+									   ? entry.frontmatter.yaml.videoThumbnail
+									   : undefined
+							});
+						}
+					}
+				}
+			});
+			
+			
+					
+			/* util.log(util.inspect(childTree));
+			var dumpTree = function(tree) {
+				for (var i in tree) {
+					util.log(util.inspect(tree[i]));
+					if (tree[i].type === 'dir') {
+						dumpTree(tree[i].entries);
+					}
+				}
+			}
+			dumpTree(childTree);  */
+			
+			// These are two local functions used during rendering of the tree
+			var urlForDoc = function(doc) {
+				return akasha.urlForFile(doc.path);
+			};
+			var urlForDir = function(dir) {
+				if (!dir.path) {
+					return "undefined";
+				} else {
+					return akasha.urlForFile(dir.path);
+				}
+			};
+			var nameForDir = function(dir) {
+				return dir.title;
+			};
+			
+			var renderSubTree = function(dir) {
+				return akasha.partialSync("booknav-child-tree.html.ejs", {
+					tree: dir.entries,
+					urlForDoc: urlForDoc,
+					urlForDir: urlForDir,
+					nameForDir: nameForDir,
+					renderSubTree: renderSubTree
+				});
+			};
+			
+			// util.log(util.inspect(childTree));
+			
+			// Rendering of the tree starts here, and recursively uses the above
+			// two functions to render sub-portions of the tree
+			akasha.partial("booknav-child-tree.html.ejs", {
+				tree: childTree,
+				urlForDoc: urlForDoc,
+				urlForDir: urlForDir,
+				nameForDir: nameForDir,
+				renderSubTree: renderSubTree
+			},
+			function(err, treeHtml) {
+				if (err) next(err);
+				else {
+					$(element).replaceWith(treeHtml);
+					next();
+				}
+			});
+		
+			/*akasha.eachDocument - selecting out any that are siblings or children of the current document
+			sort that list by file name
+			
+			for any with a slash ....
+				remove from list into a separate list
+				split the pathname on slashes
+			special kind of entry in document array for child directories
+			add these entries into appropriate places
+			
+			[
+				file {path },
+				file {path},
+				dir { path element, [
+						file {path},
+						file {path},
+						dir { path element, [
+							file {path}, ...
+						]}
+					] }
+				dir { path element, [
+					file {path}, ...
+				]}
+			]*/
+			
+			
+			
+		}, function(err) {
+			if (err) done(err);
+			else done();
+		});
+	}
+];
