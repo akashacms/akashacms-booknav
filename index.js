@@ -276,6 +276,7 @@ module.exports.config = function(_akasha, _config) {
     }*/
         
     config.funcs.prevNextBar = function(arg, callback) {
+		throw new Error("Called booknav.prevNextBar");
         var entry = akasha.getFileEntry(config.root_docs, arg.documentPath);
         var bnavUpFN   = getUpFileName(entry);
         var bnavPrevFN = getPrevFileName(entry);
@@ -405,6 +406,17 @@ module.exports.mahabhuta = [
 				}
 			}
 			dumpTree(childTree);  */
+			
+			for (var i = 0; i < childTree.length; i++) {
+				var entry = childTree[i];
+				if (i.type === 'dir') {
+					entry.entries.sort(function(a, b) {
+						if (a.path < b.path) return -1;
+						else if (a.path === b.path) return 0;
+						else return 1;
+					});
+				}
+			}
 			
 			// These are two local functions used during rendering of the tree
 			var urlForDoc = function(doc) {
