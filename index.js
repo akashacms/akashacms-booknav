@@ -95,7 +95,7 @@ module.exports.config = function(_akasha, _config) {
 };
 
 var findBookDocs = function(config, docDirPath) {
-	var documents = akasha.findMatchingDocuments(config, {
+	var documents = akasha.findMatchingDocuments({
 		path: new RegExp('^'+ docDirPath +'/')
 	});
 
@@ -126,7 +126,7 @@ module.exports.mahabhuta = [
 	function($, metadata, dirty, done) {
 		if ($('book-next-prev').get(0)) {
 			logger.trace('book-next-prev');
-			akasha.readDocumentEntry(config, metadata.documentPath, function(err, docEntry) {
+			akasha.readDocumentEntry(metadata.documentPath, function(err, docEntry) {
 				if (err) done(err);
 				else {
 					var bookRoot = $('book-next-prev').attr('book-root');
@@ -181,7 +181,7 @@ module.exports.mahabhuta = [
 			
 			// util.log('bookChildTree documentPath='+ metadata.documentPath +' docDirPath='+ docDirPath);
 			var childTree = [];
-			akasha.eachDocument(config, function(entry) {
+			akasha.eachDocument(function(entry) {
 				var docPath = entry.path;
 				// util.log(entry.type +' docDirPath='+docDirPath +' docPath='+docPath +' '+ entry.fullpath);
 				if (akasha.supportedForHtml(docPath) && (docPath.indexOf(docDirPath) === 0 || docDirPath === '.')) {
@@ -192,7 +192,7 @@ module.exports.mahabhuta = [
 						var components = documentPath.split('/');
 						// util.log(util.inspect(components));
 						var entryList = childTree;
-						var dirEntry = undefined;
+						var dirEntry;
 						for (var i = 0; i < components.length; i++) {
 							var cmp = components[i];
 							if (i === (components.length - 1)) {
