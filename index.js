@@ -32,7 +32,7 @@ var getPrevFileName = function(entry) {
         return entry.frontmatter.yaml["booknav-prev"];
     else
         return undefined;
-}
+};
 var getNextFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
         && entry.frontmatter.hasOwnProperty("yaml")
@@ -40,7 +40,7 @@ var getNextFileName = function(entry) {
         return entry.frontmatter.yaml["booknav-next"];
     else
         return undefined;
-}
+};
 var getUpFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
         && entry.frontmatter.hasOwnProperty("yaml")
@@ -48,7 +48,7 @@ var getUpFileName = function(entry) {
         return entry.frontmatter.yaml["booknav-up"];
     else
         return undefined;
-}
+};
 
 var findDirInEntryList = function(entryList, cmp) {
     for (var ch = 0; ch < entryList.length; ch++) {
@@ -57,7 +57,7 @@ var findDirInEntryList = function(entryList, cmp) {
         }
     }
     return undefined;
-}
+};
 
 /**
  * Add ourselves to the config data.
@@ -103,6 +103,10 @@ var findBookDocs = function(config, docDirPath) {
 		var indexre = /^(.*)\/([^\/]+\.html)$/;
 		var amatches = a.renderedFileName.match(indexre);
 		var bmatches = b.renderedFileName.match(indexre);
+		if (!amatches)
+		    return -1;
+		else if (!bmatches)
+		    return 1;
 		if (amatches[1] === bmatches[1]) {
 			if (amatches[2] === "index.html") {
 				return -1;
@@ -140,7 +144,7 @@ module.exports.mahabhuta = [
 					// find it within documents
 					var docIndex = -1;
 					for (var j = 0; bookDocs && j < bookDocs.length; j++) {
-						util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
+						// util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
 						if (bookDocs[j].path === docEntry.path) {
 							docIndex = j;
 						}
