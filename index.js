@@ -1,6 +1,6 @@
 /**
  *
- * Copyright 2013 David Herron
+ * Copyright 2013-2015 David Herron
  * 
  * This file is part of AkashaCMS-booknav (http://akashacms.com/).
  *
@@ -150,8 +150,12 @@ module.exports.mahabhuta = [
 						}
 					}
 					if (docIndex >= 0) {
-						var prevDoc = docIndex === 0 ? bookDocs[bookDocs.length - 1] : bookDocs[docIndex - 1];
-						var nextDoc = docIndex === bookDocs.length - 1 ? bookDocs[0] : bookDocs[docIndex + 1];
+						var prevDoc = docIndex === 0
+                                    ? bookDocs[bookDocs.length - 1]
+                                    : bookDocs[docIndex - 1];
+						var nextDoc = docIndex === bookDocs.length - 1
+                                    ? bookDocs[0]
+                                    : bookDocs[docIndex + 1];
 						akasha.partial('booknav-next-prev.html.ejs', {
 							prevDoc: prevDoc, nextDoc: nextDoc, thisDoc: docEntry, documents: bookDocs
 						}, function(err, html) {
@@ -188,9 +192,12 @@ module.exports.mahabhuta = [
 			akasha.eachDocument(function(entry) {
 				var docPath = entry.path;
 				// util.log(entry.type +' docDirPath='+docDirPath +' docPath='+docPath +' '+ entry.fullpath);
-				if (akasha.supportedForHtml(docPath) && (docPath.indexOf(docDirPath) === 0 || docDirPath === '.')) {
+				if (akasha.supportedForHtml(docPath)
+                && (docPath.indexOf(docDirPath) === 0 || docDirPath === '.')) {
 					
-					var documentPath = docDirPath !== '.' ? docPath.substring(docDirPath.length + 1) : docPath;
+					var documentPath = docDirPath !== '.'
+                                     ? docPath.substring(docDirPath.length + 1)
+                                     : docPath;
 					// util.log('documentPath='+documentPath);
 					if (documentPath.indexOf('/') >= 0) {
 						var components = documentPath.split('/');
@@ -210,6 +217,18 @@ module.exports.mahabhuta = [
 									dirEntry.teaser = entry.frontmatter.yaml.teaser
 													? entry.frontmatter.yaml.teaser
 													: undefined;
+									dirEntry.teaserthumb =
+                                                      entry.frontmatter.yaml.teaserthumb
+													? entry.frontmatter.yaml.teaserthumb
+													: undefined;
+									dirEntry.youtubeThumbnail =
+                                                      entry.frontmatter.yaml.youtubeThumbnail
+													? entry.frontmatter.yaml.youtubeThumbnail
+													: undefined;
+									dirEntry.videoThumbnail =
+                                                      entry.frontmatter.yaml.videoThumbnail
+													? entry.frontmatter.yaml.videoThumbnail
+													: undefined;
 								} else if (akasha.supportedForHtml(entry.path)) {
 									dirEntry.entries.push({
 										type: 'doc',
@@ -220,6 +239,10 @@ module.exports.mahabhuta = [
 											  : undefined,
 										teaser: entry.frontmatter.yaml.teaser
 											  ? entry.frontmatter.yaml.teaser
+											  : undefined,
+										teaserThumb:
+                                                entry.frontmatter.yaml.teaserthumb
+											  ? entry.frontmatter.yaml.teaserthumb
 											  : undefined,
 										entry: entry,
 										youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
@@ -259,7 +282,14 @@ module.exports.mahabhuta = [
 								teaser: entry.frontmatter.yaml.teaser
 									  ? entry.frontmatter.yaml.teaser
 									  : undefined,
+								teaserThumb:
+                                        entry.frontmatter.yaml.teaserthumb
+									  ? entry.frontmatter.yaml.teaserthumb
+									  : undefined,
 								entry: entry,
+								youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
+									   ? entry.frontmatter.yaml.youtubeThumbnail
+									   : undefined,
 								videoThumbnail: entry.frontmatter.yaml.videoThumbnail
 									   ? entry.frontmatter.yaml.videoThumbnail
 									   : undefined
@@ -268,17 +298,6 @@ module.exports.mahabhuta = [
 					}
 				}
 			});
-			
-			/* * / util.log(util.inspect(childTree)); 
-			/* var dumpTree = function(tree) {
-				for (var i in tree) {
-					util.log(util.inspect(tree[i]));
-					if (tree[i].type === 'dir') {
-						dumpTree(tree[i].entries);
-					}
-				}
-			}
-			dumpTree(childTree); /* */
 			
 			for (var i = 0; i < childTree.length; i++) {
 				var entry = childTree[i];
