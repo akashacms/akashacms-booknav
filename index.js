@@ -17,13 +17,29 @@
  *  limitations under the License.
  */
 
-var path     = require('path');
-var util     = require('util');
-var async    = require('async');
+'use strict';
 
-var akasha;
-var config;
-var logger;
+const path     = require('path');
+const util     = require('util');
+const async    = require('async');
+const globfs   = require('globfs');
+const akasha   = require('../akasharender');
+
+const log   = require('debug')('akasha:booknav-plugin');
+const error = require('debug')('akasha:error-booknav-plugin');
+
+module.exports = class BooknavPlugin extends akasha.Plugin {
+	constructor() {
+		super("akashacms-booknav");
+	}
+	
+	configure(config) {
+        this._config = config;
+		config.addPartialsDir(path.join(__dirname, 'partials'));
+		config.addMahabhuta(module.exports.mahabhuta);
+	}
+
+}
 
 var getPrevFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
@@ -59,123 +75,266 @@ var findDirInEntryList = function(entryList, cmp) {
     return undefined;
 };
 
-/**
- * Add ourselves to the config data.
- **/
-module.exports.config = function(_akasha, _config) {
-	akasha = _akasha;
-	config = _config;
-    config.root_partials.push(path.join(__dirname, 'partials'));
-
-    logger = akasha.getLogger("booknav");
-
-    /* config.funcs.prevNextBar = function(arg, callback) {
-		throw new Error("Called booknav.prevNextBar");
-        var entry = akasha.getFileEntry(config.root_docs, arg.documentPath);
-        var bnavUpFN   = getUpFileName(entry);
-        var bnavPrevFN = getPrevFileName(entry);
-        var bnavNextFN = getNextFileName(entry);
-        var bnavUp   = bnavUpFN   ? akasha.getFileEntry(config.root_docs, bnavUpFN)   : undefined;
-        var bnavPrev = bnavPrevFN ? akasha.getFileEntry(config.root_docs, bnavPrevFN) : undefined;
-        var bnavNext = bnavNextFN ? akasha.getFileEntry(config.root_docs, bnavNextFN) : undefined;
-        if (bnavUp)   bnavUp.urlForFile   = akasha.urlForFile(bnavUp.path);
-        if (bnavPrev) bnavPrev.urlForFile = akasha.urlForFile(bnavPrev.path);
-        if (bnavNext) bnavNext.urlForFile = akasha.urlForFile(bnavNext.path);
-        var val = akasha.partialSync("booknav-prevnext.html.ejs", {
-            upURL:     bnavUp   ? bnavUp.urlForFile          : undefined,
-            prevURL:   bnavPrev ? bnavPrev.urlForFile        : undefined,
-            prevTITLE: bnavPrev ? bnavPrev.frontmatter.yaml.title : undefined,
-            nextURL:   bnavNext ? bnavNext.urlForFile        : undefined,
-            nextTITLE: bnavNext ? bnavNext.frontmatter.yaml.title : undefined
-        });
-        if (callback) callback(undefined, val);
-        return val;
-    }; */
-	return module.exports;
-};
 
 var findBookDocs = function(config, docDirPath) {
-	var documents = akasha.findMatchingDocuments({
-		path: new RegExp('^'+ docDirPath +'/')
-	});
+        
+    var cachedBookDocs = akasha.cache.get("booknav", "bookDocs");
+    if (cachedBookDocs) {
+        return Promise.resolve(cachedBookDocs);
+    }
+    
+    return akasha.documentSearch(config, {
+        rootPath: docDirPath,
+        renderers: [ HTMLRenderer ]
+    })
+    .then(results => {
+        if (err) return reject(err);
+        results.sort((a,b) => {
+            var indexre = /^(.*)\/([^\/]+\.html)$/;
+            var amatches = a.path.match(indexre);
+            var bmatches = b.path.match(indexre);
+            if (!amatches)
+                return -1;
+            else if (!bmatches)
+                return 1;
+            if (amatches[1] === bmatches[1]) {
+                if (amatches[2] === "index.html") {
+                    return -1;
+                } else if (bmatches[2] === "index.html") {
+                    return 1;
+                } else if (amatches[2] < bmatches[2]) {
+                    return -1;
+                } else if (amatches[2] === bmatches[2]) {
+                    return 0;
+                } else return 1;
+            }
+            if (a.path < b.path) return -1;
+            else if (a.path === b.path) return 0;
+            else return 1;
+        });
+        akasha.cache.set("booknav", "bookDocs", results);
+        return results;
+    });
+};
 
-	documents.sort(function(a, b) {
-		var indexre = /^(.*)\/([^\/]+\.html)$/;
-		var amatches = a.renderedFileName.match(indexre);
-		var bmatches = b.renderedFileName.match(indexre);
-		if (!amatches)
-		    return -1;
-		else if (!bmatches)
-		    return 1;
-		if (amatches[1] === bmatches[1]) {
-			if (amatches[2] === "index.html") {
-				return -1;
-			} else if (bmatches[2] === "index.html") {
-				return 1;
-			} else if (amatches[2] < bmatches[2]) {
-				return -1;
-			} else if (amatches[2] === bmatches[2]) {
-				return 0;
-			} else return 1;
-		}
-		if (a.path < b.path) return -1;
-		else if (a.path === b.path) return 0;
-		else return 1;
-	});
-	
-	return documents;
+
+/**
+ *
+ *
+ *
+    {
+        type: "root",
+        title: "copied from index.html",
+        teaser: "copied from index.html",
+        name: undefined,
+        entries: [
+            // Made up of entries of one of these two types
+            {
+                type: "file",
+                title: "copied from metadata",
+                teaser: "copied from metadata",
+                name: "file name .ext",
+                document: see object created in findBookDocs,
+            },
+            {
+                type: "dir",
+                title: "copied from metadata of index.html",
+                teaser: "copied from metadata of index.html",
+                name: "directory name",
+                entries: [
+                    // repeat 
+                ]
+            }
+        ]
+    }
+ *
+ */
+var makeBookTree = function(config, docDirPath) {
+    var bookTreeRoot = {
+        type: "root",
+        entries: []
+    };
+    
+    return findBookDocs(config, docDirPath)
+    .then(bookdocs => {
+        
+        // split the path into components
+        // for each directory component ensure it has an object in the tree
+        // at the file portion of the name, add its data to the appropriate object in the tree
+        // bookdocs already has full metadata
+        
+        for (let doc in bookdocs) {
+            
+            let curDirInTree = bookTreeRoot;
+            let pathsplit = doc.path.split('/');
+            for (let i = 0; i <  pathsplit.length; i++) {
+                let component = pathsplit[i];
+                if (i === (pathsplit.length - 1)) {
+                    // This is the last entry in the tree, hence is a file
+                    curDirInTree.entries.push({
+                        type: "file",
+                        name: component,
+                        document: doc
+                    });
+                } else {
+                    let found = false;
+                    for (let entry in curDirInTree.entries) {
+                        if (entry.type === "dir" && entry.dirname === component) {
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        curDirInTree.entries.push({
+                            type: "dir",
+                            name: component,
+                            entries: []
+                        });
+                    }
+                }
+            }
+        }
+        
+        return bookTreeRoot;
+    });
 };
 
 module.exports.mahabhuta = [
 	function($, metadata, dirty, done) {
 		if ($('book-next-prev').get(0)) {
-			logger.trace('book-next-prev');
-			akasha.readDocumentEntry(metadata.documentPath, function(err, docEntry) {
-				if (err) done(err);
-				else {
-					var bookRoot = $('book-next-prev').attr('book-root');
-					if (bookRoot && bookRoot.charAt(0) === '/') {
-						bookRoot = bookRoot.substring(1);
-					}
-					bookRoot = path.dirname(bookRoot);
-					var bookDocs = findBookDocs(config, bookRoot);
-					// util.log(util.inspect(bookDocs));
-					// what's the current document
-					// find it within documents
-					var docIndex = -1;
-					for (var j = 0; bookDocs && j < bookDocs.length; j++) {
-						// util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
-						if (bookDocs[j].path === docEntry.path) {
-							docIndex = j;
-						}
-					}
-					if (docIndex >= 0) {
-						var prevDoc = docIndex === 0
-                                    ? bookDocs[bookDocs.length - 1]
-                                    : bookDocs[docIndex - 1];
-						var nextDoc = docIndex === bookDocs.length - 1
-                                    ? bookDocs[0]
-                                    : bookDocs[docIndex + 1];
-						akasha.partial('booknav-next-prev.html.ejs', {
-							prevDoc: prevDoc, nextDoc: nextDoc, thisDoc: docEntry, documents: bookDocs
-						}, function(err, html) {
-							if (err) done(err);
-							else {
-								$('book-next-prev').replaceWith(html);
-								done();	
-							}
-						});
-					} else {
-						done(new Error('did not find document in book'));
-					}
-				}
-			});
+			log('book-next-prev');
+            var bookRoot = $('book-next-prev').attr('book-root');
+            if (bookRoot && bookRoot.charAt(0) === '/') {
+                bookRoot = bookRoot.substring(1);
+            }
+            bookRoot = path.dirname(bookRoot);
+            findBookDocs(config, bookRoot)
+            .then(bookdocs => {
+                // util.log(util.inspect(bookDocs));
+                // what's the current document
+                // find it within documents
+                var docIndex = -1;
+                for (var j = 0; bookDocs && j < bookDocs.length; j++) {
+                    // util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
+                    if (bookDocs[j].path === metadata.document.path) {
+                        docIndex = j;
+                    }
+                }
+                if (docIndex >= 0) {
+                    var prevDoc = docIndex === 0
+                                ? bookDocs[bookDocs.length - 1]
+                                : bookDocs[docIndex - 1];
+                    var nextDoc = docIndex === bookDocs.length - 1
+                                ? bookDocs[0]
+                                : bookDocs[docIndex + 1];
+                    akasha.partial(metadata.config, 'booknav-next-prev.html.ejs', {
+                        prevDoc, nextDoc // , thisDoc: docEntry, documents: bookDocs
+                    })
+                    .then(html => {
+                        $('book-next-prev').replaceWith(html);
+                        done();	
+                    })
+                    .catch(err => { done(err); });
+                } else {
+                    done(new Error('did not find document in book'));
+                }
+            });
 		} else done();
 	},
 	
 	function($, metadata, dirty, done) {
 		var elements = [];
-		logger.trace('book-child-tree');
+		$('book-child-tree').each(function(i, elem) { elements.push(elem); });
+        if (elements.length <= 0) return done();
+		log('book-child-tree');
+		async.eachSeries(elements, 
+        (element, next) => {
+			// logger.info(element.name);
+			
+			var template = $(element).attr('template');
+			var bookRoot = $(element).attr('book-root');
+			if (bookRoot && bookRoot.charAt(0) === '/') {
+				bookRoot = bookRoot.substring(1);
+			}
+			var docDirPath = path.dirname(bookRoot ? bookRoot : metadata.document.path);
+            
+            makeBookTree(config, docDirPath)
+            .then(bookTree => {
+                
+                var fixTreeSegment = function(segment) {
+                    segment.entries.sort((a,b) => {
+                        if (a.name < b.name) return -1;
+                        else if (a.name === b.name) return 0;
+                        else return 1;
+                    });
+                    if (segment.type === "root" || segment.type === "dir") {
+                        for (let entry in segment.entries) {
+                            if (entry.name === "index.html") {
+                                segment.title = entry.metadata.title;
+                                if (entry.metadata.teaser) {
+                                    segment.teaser = entry.metadata.teaser;
+                                }
+                            }
+                        }
+                    }
+                    for (let entry in segment.entries) {
+                        if (entry.type === "dir") {
+                            fixTreeSegment(entry);
+                        }
+                    }
+                };
+                
+                // Sort the entries in the whole tree by their file name
+                fixTreeSegment(bookTree);
+                return bookTree;
+            })
+            .then(bookTree => {
+                // These are two local functions used during rendering of the tree
+                var urlForDoc = function(doc) {
+                    return '/'+ doc.path;
+                };
+                var urlForDir = function(dir) {
+                    if (!dir.path) {
+                        return "undefined";
+                    } else {
+                        return '/'+ dir.path;
+                    }
+                };
+                
+                var renderSubTree = function(dir) {
+                    return akasha.partialSync(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
+                        tree: dir.entries,
+                        urlForDoc, urlForDir, renderSubTree
+                    });
+                };
+                
+                // util.log(util.inspect(childTree));
+                
+                // Rendering of the tree starts here, and recursively uses the above
+                // two functions to render sub-portions of the tree
+                akasha.partial(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
+                    tree: bookTree,
+                    urlForDoc, urlForDir, renderSubTree
+                })
+                .then(treeHtml => {
+                    // util.log('rendered booknav '+ treeHtml);
+                    $(element).replaceWith(treeHtml);
+                    // util.log($.html());
+                    next();
+                })
+                .catch(err => { next(err); });
+            });
+        }, 
+        err => {
+		    // util.log('FINI book-child-tree '+ $.html());
+			if (err) done(err);
+			else done();
+		});
+    },
+    
+    /* 
+	function($, metadata, dirty, done) {
+		var elements = [];
+		log('book-child-tree');
 		$('book-child-tree').each(function(i, elem) { elements.push(elem); });
 		async.eachSeries(elements, function(element, next) {
 			// logger.info(element.name);
@@ -185,9 +344,9 @@ module.exports.mahabhuta = [
 			if (bookRoot && bookRoot.charAt(0) === '/') {
 				bookRoot = bookRoot.substring(1);
 			}
-			var docDirPath = path.dirname(bookRoot ? bookRoot : metadata.documentPath);
+			var docDirPath = path.dirname(bookRoot ? bookRoot : metadata.document.path);
 			
-			// util.log('bookChildTree documentPath='+ metadata.documentPath +' docDirPath='+ docDirPath);
+			// util.log('bookChildTree documentPath='+ metadata.document.path +' docDirPath='+ docDirPath);
 			var childTree = [];
 			akasha.eachDocument(function(entry) {
 				var docPath = entry.path;
@@ -347,9 +506,11 @@ module.exports.mahabhuta = [
 				renderSubTree: renderSubTree
 			},
 			function(err, treeHtml) {
+			    // util.log('rendered booknav '+ treeHtml);
 				if (err) next(err);
 				else {
 					$(element).replaceWith(treeHtml);
+					// util.log($.html());
 					next();
 				}
 			});
@@ -376,11 +537,12 @@ module.exports.mahabhuta = [
 				dir { path element, [
 					file {path}, ...
 				]}
-			]*/
+			]* /
 			
 		}, function(err) {
+		    // util.log('FINI book-child-tree '+ $.html());
 			if (err) done(err);
 			else done();
 		});
-	}
+	} */
 ];
