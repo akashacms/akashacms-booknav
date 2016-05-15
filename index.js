@@ -85,10 +85,9 @@ var findBookDocs = function(config, docDirPath) {
     
     return akasha.documentSearch(config, {
         rootPath: docDirPath,
-        renderers: [ HTMLRenderer ]
+        renderers: [ akasha.HTMLRenderer ]
     })
     .then(results => {
-        if (err) return reject(err);
         results.sort((a,b) => {
             var indexre = /^(.*)\/([^\/]+\.html)$/;
             var amatches = a.path.match(indexre);
@@ -257,7 +256,7 @@ module.exports.mahabhuta = [
 			}
 			var docDirPath = path.dirname(bookRoot ? bookRoot : metadata.document.path);
             
-            makeBookTree(config, docDirPath)
+            makeBookTree(metadata.config, docDirPath)
             .then(bookTree => {
                 
                 var fixTreeSegment = function(segment) {
@@ -322,7 +321,8 @@ module.exports.mahabhuta = [
                     next();
                 })
                 .catch(err => { next(err); });
-            });
+            })
+            .catch(err => { next(err); });;
         }, 
         err => {
 		    // util.log('FINI book-child-tree '+ $.html());
