@@ -3,15 +3,15 @@ for (var i = 0; i < tree.entries.length; i++) { // in tree) {
     var item = tree.entries[i];
     if (item.type === 'file' && item.name !== 'index.html') {
         %><li>
-            <a href="<%= urlForDoc(item) %>"><%= item.metadata.title %></a>
-            <% if (item.metadata.teaser) { %><%= item.metadata.teaser %><% } %>
+            <a href="<%= urlForDoc(item) %>"><%= item.document.metadata.title %></a>
+            <% if (item.document.metadata.teaser) { %><%= item.document.metadata.teaser %><% } %>
         </li><%
     } else {
         %><li>
             <%
             var url = urlForDir(item);
             if (url !== "undefined") {
-                %><a href="<%= url %>"><%= item.title %></a><%
+                %><a href="<%= url %>"><%= item.title ? item.title : url %></a><%
                 if (item.metadata.teaser) { %><%= item.metadata.teaser %><% }
             } %>
             <%- renderSubTree(item) %>

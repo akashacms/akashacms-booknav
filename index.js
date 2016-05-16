@@ -88,6 +88,7 @@ var findBookDocs = function(config, docDirPath) {
         renderers: [ akasha.HTMLRenderer ]
     })
     .then(results => {
+		log(`findBookDocs ${util.inspect(results)}`);
         results.sort((a,b) => {
             var indexre = /^(.*)\/([^\/]+\.html)$/;
             var amatches = a.path.match(indexre);
@@ -116,6 +117,24 @@ var findBookDocs = function(config, docDirPath) {
     });
 };
 
+/**
+ * Used by makeBookTree to convert a pathname to an array like this:
+ *
+ * [ { type: 'dir', component: 'foo', entries: [] },
+ *   { type: 'dir', component: 'bar', entries: [] },
+ *   { type: 'dir', component: 'bas', entries: [] },
+ *   { type: 'dir', component: 'baz', entries: [] },
+ *   { type: 'file', component: 'xyzzy.html' } ]
+ *
+ */
+module.exports.componentizeFileName = function(filename) {
+	var ret = [];
+	ret.push({ type: 'file', component: path.basename(filename) });
+	for (filename = path.dirname(filename); filename != '.' && filename != '/'; filename = path.dirname(filename)) {
+		ret.unshift({ type: 'dir', component: path.basename(filename), entries: [] });
+	}
+	return ret;
+}
 
 /**
  *
@@ -156,18 +175,31 @@ var makeBookTree = function(config, docDirPath) {
     
     return findBookDocs(config, docDirPath)
     .then(bookdocs => {
+		
+		// log(`makeBookTree ${util.inspect(bookdocs)}`);
         
         // split the path into components
         // for each directory component ensure it has an object in the tree
         // at the file portion of the name, add its data to the appropriate object in the tree
         // bookdocs already has full metadata
         
-        for (let doc in bookdocs) {
+        for (let docidx in bookdocs) {
             
+			let doc = bookdocs[docidx];
+			log(`makeBookTree ${util.inspect(doc)}`);
+		
             let curDirInTree = bookTreeRoot;
-            let pathsplit = doc.path.split('/');
-            for (let i = 0; i <  pathsplit.length; i++) {
-                let component = pathsplit[i];
+			let components = module.exports.componentizeFileName(doc.path);
+			
+            for (let i = 0; i <  components.length; i++) {
+                let component = components[i];
+				if (component.type === 'file') {
+                    //code
+                } else if (component.type === 'dir') {
+                    //code
+                } else {
+					// ERROR
+				}
                 if (i === (pathsplit.length - 1)) {
                     // This is the last entry in the tree, hence is a file
                     curDirInTree.entries.push({
@@ -175,11 +207,17 @@ var makeBookTree = function(config, docDirPath) {
                         name: component,
                         document: doc
                     });
+					log(`makeBookTree added file ${component} to ${util.inspect(curDirInTree)}`);
                 } else {
                     let found = false;
-                    for (let entry in curDirInTree.entries) {
-                        if (entry.type === "dir" && entry.dirname === component) {
-                            found = true;
+                    for (let entrynum in curDirInTree.entries) {
+						if (!found) {
+							let entry = curDirInTree.entries[entrynum];
+							log(`makeBookTree adding dir ${util.inspect(entry)} === ${component}`);
+							if (entry && entry.type === "dir" && entry.name === component) {
+								found = true;
+								curDirInTree = entry;
+							}
                         }
                     }
                     if (!found) {
@@ -258,6 +296,8 @@ module.exports.mahabhuta = [
             
             makeBookTree(metadata.config, docDirPath)
             .then(bookTree => {
+				
+				log(`book-child-tree ${bookRoot} ${metadata.document.path} ${docDirPath} ${util.inspect(bookTree)}`);
                 
                 var fixTreeSegment = function(segment) {
                     segment.entries.sort((a,b) => {
@@ -287,6 +327,8 @@ module.exports.mahabhuta = [
                 return bookTree;
             })
             .then(bookTree => {
+				log(`book-child-tree ${util.inspect(bookTree)}`);
+                
                 // These are two local functions used during rendering of the tree
                 var urlForDoc = function(doc) {
                     return '/'+ doc.path;
@@ -300,6 +342,7 @@ module.exports.mahabhuta = [
                 };
                 
                 var renderSubTree = function(dir) {
+					log(`renderSubTree ${util.inspect(dir)}`);
                     return akasha.partialSync(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
                         tree: dir.entries,
                         urlForDoc, urlForDir, renderSubTree
@@ -310,6 +353,7 @@ module.exports.mahabhuta = [
                 
                 // Rendering of the tree starts here, and recursively uses the above
                 // two functions to render sub-portions of the tree
+				log(`renderTree ${util.inspect(bookTree)}`);
                 akasha.partial(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
                     tree: bookTree,
                     urlForDoc, urlForDir, renderSubTree
