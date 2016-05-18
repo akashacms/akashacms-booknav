@@ -41,6 +41,7 @@ module.exports = class BooknavPlugin extends akasha.Plugin {
 
 }
 
+/*
 var getPrevFileName = function(entry) {
     if (entry && entry.hasOwnProperty('frontmatter')
         && entry.frontmatter.hasOwnProperty("yaml")
@@ -74,11 +75,11 @@ var findDirInEntryList = function(entryList, cmp) {
     }
     return undefined;
 };
-
+*/
 
 var findBookDocs = function(config, docDirPath) {
         
-    var cachedBookDocs = akasha.cache.get("booknav", "bookDocs");
+    var cachedBookDocs = akasha.cache.get("booknav", "bookDocs-"+docDirPath);
     if (cachedBookDocs) {
         return Promise.resolve(cachedBookDocs);
     }
@@ -88,7 +89,7 @@ var findBookDocs = function(config, docDirPath) {
         renderers: [ akasha.HTMLRenderer ]
     })
     .then(results => {
-		log(`findBookDocs ${util.inspect(results)}`);
+		// log(`findBookDocs ${util.inspect(results)}`);
         results.sort((a,b) => {
             var indexre = /^(.*)\/([^\/]+\.html)$/;
             var amatches = a.path.match(indexre);
@@ -112,7 +113,7 @@ var findBookDocs = function(config, docDirPath) {
             else if (a.path === b.path) return 0;
             else return 1;
         });
-        akasha.cache.set("booknav", "bookDocs", results);
+        akasha.cache.set("booknav", "bookDocs-"+docDirPath, results);
         return results;
     });
 };
@@ -127,14 +128,14 @@ var findBookDocs = function(config, docDirPath) {
  *   { type: 'file', component: 'xyzzy.html' } ]
  *
  */
-module.exports.componentizeFileName = function(filename) {
+var componentizeFileName = module.exports.componentizeFileName = function(filename) {
 	var ret = [];
 	ret.push({ type: 'file', component: path.basename(filename) });
 	for (filename = path.dirname(filename); filename != '.' && filename != '/'; filename = path.dirname(filename)) {
 		ret.unshift({ type: 'dir', component: path.basename(filename), entries: [] });
 	}
 	return ret;
-}
+};
 
 /**
  *
@@ -168,10 +169,23 @@ module.exports.componentizeFileName = function(filename) {
  *
  */
 var makeBookTree = function(config, docDirPath) {
+	
+	// log(`makeBookTree TOP ${docDirPath}`);
+	
     var bookTreeRoot = {
         type: "root",
         entries: []
     };
+	
+	var findComponentEntry = function(treeEntry, component) {
+		for (var i = 0; i < treeEntry.entries.length; i++) {
+			var entry = treeEntry.entries[i];
+			if (entry && entry.name === component.component) {
+				return entry;
+            }
+        }
+		return undefined;
+	};
     
     return findBookDocs(config, docDirPath)
     .then(bookdocs => {
@@ -186,53 +200,95 @@ var makeBookTree = function(config, docDirPath) {
         for (let docidx in bookdocs) {
             
 			let doc = bookdocs[docidx];
-			log(`makeBookTree ${util.inspect(doc)}`);
+			// log(`makeBookTree ${util.inspect(doc)}`);
 		
             let curDirInTree = bookTreeRoot;
-			let components = module.exports.componentizeFileName(doc.path);
+			let components = componentizeFileName(doc.path);
+			// log(`makeBookTree components ${doc.path} ${util.inspect(components)}`);
 			
+			/*
+			 *
+			 * [ { type: 'dir', component: 'foo', entries: [] },
+			 *   { type: 'dir', component: 'bar', entries: [] },
+			 *   { type: 'dir', component: 'bas', entries: [] },
+			 *   { type: 'dir', component: 'baz', entries: [] },
+			 *   { type: 'file', component: 'xyzzy.html' } ]
+			 *
+			 */
             for (let i = 0; i <  components.length; i++) {
                 let component = components[i];
 				if (component.type === 'file') {
-                    //code
+					let entry = findComponentEntry(curDirInTree, component);
+					if (!entry) {
+						curDirInTree.entries.push({
+							type: "file",
+							name: component.component,
+							path: doc.path,
+							filepath: doc.filepath,
+							filename: doc.filename,
+							teaser: doc.metadata.teaser,
+							title: doc.metadata.title,
+							document: doc
+						});
+					}
                 } else if (component.type === 'dir') {
-                    //code
+					let entry = findComponentEntry(curDirInTree, component);
+					if (!entry) {
+						entry = {
+                            type: "dir",
+                            name: component.component,
+                            entries: []
+                        };
+						entry.path = (curDirInTree.path)
+								? path.join(curDirInTree.path, component.component)
+							 	: component.component;
+                        curDirInTree.entries.push(entry);
+                    }
+					curDirInTree = entry;
                 } else {
 					// ERROR
 				}
-                if (i === (pathsplit.length - 1)) {
-                    // This is the last entry in the tree, hence is a file
-                    curDirInTree.entries.push({
-                        type: "file",
-                        name: component,
-                        document: doc
-                    });
-					log(`makeBookTree added file ${component} to ${util.inspect(curDirInTree)}`);
-                } else {
-                    let found = false;
-                    for (let entrynum in curDirInTree.entries) {
-						if (!found) {
-							let entry = curDirInTree.entries[entrynum];
-							log(`makeBookTree adding dir ${util.inspect(entry)} === ${component}`);
-							if (entry && entry.type === "dir" && entry.name === component) {
-								found = true;
-								curDirInTree = entry;
-							}
-                        }
-                    }
-                    if (!found) {
-                        curDirInTree.entries.push({
-                            type: "dir",
-                            name: component,
-                            entries: []
-                        });
-                    }
-                }
             }
         }
         
         return bookTreeRoot;
-    });
+    })
+	.then(bookTree => {
+
+		// log(`makeBookTree fixTree ${util.inspect(bookTree)}`);
+		
+		var fixTreeSegment = function(segment) {
+			segment.entries.sort((a,b) => {
+				if (a.name < b.name) return -1;
+				else if (a.name === b.name) return 0;
+				else return 1;
+			});
+			if (segment.type === "root" || segment.type === "dir") {
+				for (let entryidx in segment.entries) {
+					let entry = segment.entries[entryidx];
+					if (entry.filename === "index.html") {
+						segment.path = path.join(segment.path, 'index.html');
+						segment.title = entry.document.metadata.title;
+						if (entry.document.metadata.teaser) {
+							segment.teaser = entry.document.metadata.teaser;
+						}
+					}
+				}
+			}
+			// log(`makeBookTree fixed segment ${util.inspect(segment)}`);
+			for (let entryidx in segment.entries) {
+				let entry = segment.entries[entryidx];
+				if (entry.type === "dir") {
+					fixTreeSegment(entry);
+				}
+			}
+		};
+		
+		// Sort the entries in the whole tree by their file name
+		fixTreeSegment(bookTree);
+		
+		return bookTree;
+	});
 };
 
 module.exports.mahabhuta = [
@@ -244,25 +300,25 @@ module.exports.mahabhuta = [
                 bookRoot = bookRoot.substring(1);
             }
             bookRoot = path.dirname(bookRoot);
-            findBookDocs(config, bookRoot)
+            findBookDocs(metadata.config, bookRoot)
             .then(bookdocs => {
                 // util.log(util.inspect(bookDocs));
                 // what's the current document
                 // find it within documents
                 var docIndex = -1;
-                for (var j = 0; bookDocs && j < bookDocs.length; j++) {
+                for (var j = 0; bookdocs && j < bookdocs.length; j++) {
                     // util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
-                    if (bookDocs[j].path === metadata.document.path) {
+                    if (bookdocs[j].path === metadata.document.path) {
                         docIndex = j;
                     }
                 }
                 if (docIndex >= 0) {
                     var prevDoc = docIndex === 0
-                                ? bookDocs[bookDocs.length - 1]
-                                : bookDocs[docIndex - 1];
-                    var nextDoc = docIndex === bookDocs.length - 1
-                                ? bookDocs[0]
-                                : bookDocs[docIndex + 1];
+                                ? bookdocs[bookdocs.length - 1]
+                                : bookdocs[docIndex - 1];
+                    var nextDoc = docIndex === bookdocs.length - 1
+                                ? bookdocs[0]
+                                : bookdocs[docIndex + 1];
                     akasha.partial(metadata.config, 'booknav-next-prev.html.ejs', {
                         prevDoc, nextDoc // , thisDoc: docEntry, documents: bookDocs
                     })
@@ -288,63 +344,33 @@ module.exports.mahabhuta = [
 			// logger.info(element.name);
 			
 			var template = $(element).attr('template');
-			var bookRoot = $(element).attr('book-root');
-			if (bookRoot && bookRoot.charAt(0) === '/') {
-				bookRoot = bookRoot.substring(1);
-			}
-			var docDirPath = path.dirname(bookRoot ? bookRoot : metadata.document.path);
+			
+			var docDirPath = path.dirname(metadata.document.path);
+			if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
+			
+			// log(`book-child-tree ${metadata.document.path} ==> ${docDirPath}`);
             
             makeBookTree(metadata.config, docDirPath)
             .then(bookTree => {
-				
-				log(`book-child-tree ${bookRoot} ${metadata.document.path} ${docDirPath} ${util.inspect(bookTree)}`);
-                
-                var fixTreeSegment = function(segment) {
-                    segment.entries.sort((a,b) => {
-                        if (a.name < b.name) return -1;
-                        else if (a.name === b.name) return 0;
-                        else return 1;
-                    });
-                    if (segment.type === "root" || segment.type === "dir") {
-                        for (let entry in segment.entries) {
-                            if (entry.name === "index.html") {
-                                segment.title = entry.metadata.title;
-                                if (entry.metadata.teaser) {
-                                    segment.teaser = entry.metadata.teaser;
-                                }
-                            }
-                        }
-                    }
-                    for (let entry in segment.entries) {
-                        if (entry.type === "dir") {
-                            fixTreeSegment(entry);
-                        }
-                    }
-                };
-                
-                // Sort the entries in the whole tree by their file name
-                fixTreeSegment(bookTree);
-                return bookTree;
-            })
-            .then(bookTree => {
-				log(`book-child-tree ${util.inspect(bookTree)}`);
+				// log(`book-child-tree ${util.inspect(bookTree)}`);
                 
                 // These are two local functions used during rendering of the tree
                 var urlForDoc = function(doc) {
-                    return '/'+ doc.path;
+                    return '/'+ doc.filepath;
                 };
                 var urlForDir = function(dir) {
+					// log(`urlForDir ${util.inspect(dir)}`);
                     if (!dir.path) {
                         return "undefined";
                     } else {
                         return '/'+ dir.path;
                     }
                 };
-                
+				
                 var renderSubTree = function(dir) {
-					log(`renderSubTree ${util.inspect(dir)}`);
+					// log(`renderSubTree ${util.inspect(dir)}`);
                     return akasha.partialSync(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
-                        tree: dir.entries,
+                        tree: dir,
                         urlForDoc, urlForDir, renderSubTree
                     });
                 };
@@ -353,7 +379,7 @@ module.exports.mahabhuta = [
                 
                 // Rendering of the tree starts here, and recursively uses the above
                 // two functions to render sub-portions of the tree
-				log(`renderTree ${util.inspect(bookTree)}`);
+				// log(`renderTree ${util.inspect(bookTree)}`);
                 akasha.partial(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
                     tree: bookTree,
                     urlForDoc, urlForDir, renderSubTree
@@ -366,7 +392,7 @@ module.exports.mahabhuta = [
                 })
                 .catch(err => { next(err); });
             })
-            .catch(err => { next(err); });;
+            .catch(err => { next(err); });
         }, 
         err => {
 		    // util.log('FINI book-child-tree '+ $.html());
@@ -375,218 +401,4 @@ module.exports.mahabhuta = [
 		});
     },
     
-    /* 
-	function($, metadata, dirty, done) {
-		var elements = [];
-		log('book-child-tree');
-		$('book-child-tree').each(function(i, elem) { elements.push(elem); });
-		async.eachSeries(elements, function(element, next) {
-			// logger.info(element.name);
-			
-			var template = $(element).attr('template');
-			var bookRoot = $(element).attr('book-root');
-			if (bookRoot && bookRoot.charAt(0) === '/') {
-				bookRoot = bookRoot.substring(1);
-			}
-			var docDirPath = path.dirname(bookRoot ? bookRoot : metadata.document.path);
-			
-			// util.log('bookChildTree documentPath='+ metadata.document.path +' docDirPath='+ docDirPath);
-			var childTree = [];
-			akasha.eachDocument(function(entry) {
-				var docPath = entry.path;
-				// util.log(entry.type +' docDirPath='+docDirPath +' docPath='+docPath +' '+ entry.fullpath);
-				if (akasha.supportedForHtml(docPath)
-                && (docPath.indexOf(docDirPath) === 0 || docDirPath === '.')) {
-					
-					var documentPath = docDirPath !== '.'
-                                     ? docPath.substring(docDirPath.length + 1)
-                                     : docPath;
-					// util.log('documentPath='+documentPath);
-					if (documentPath.indexOf('/') >= 0) {
-						var components = documentPath.split('/');
-						// util.log(util.inspect(components));
-						var entryList = childTree;
-						var dirEntry;
-						for (var i = 0; i < components.length; i++) {
-							var cmp = components[i];
-							if (i === (components.length - 1)) {
-								// The last component is going to be the file name
-								// util.log('pushing '+ entry.path +' to dirEntry '+ util.inspect(dirEntry));
-								if (akasha.isIndexHtml(entry.path)) {
-									dirEntry.title = entry.frontmatter.yaml.title
-												   ? entry.frontmatter.yaml.title
-												   : undefined;
-									dirEntry.path = entry.path;
-									dirEntry.teaser = entry.frontmatter.yaml.teaser
-													? entry.frontmatter.yaml.teaser
-													: undefined;
-									dirEntry.teaserthumb =
-                                                      entry.frontmatter.yaml.teaserthumb
-													? entry.frontmatter.yaml.teaserthumb
-													: undefined;
-									dirEntry.youtubeThumbnail =
-                                                      entry.frontmatter.yaml.youtubeThumbnail
-													? entry.frontmatter.yaml.youtubeThumbnail
-													: undefined;
-									dirEntry.videoThumbnail =
-                                                      entry.frontmatter.yaml.videoThumbnail
-													? entry.frontmatter.yaml.videoThumbnail
-													: undefined;
-								} else if (akasha.supportedForHtml(entry.path)) {
-									dirEntry.entries.push({
-										type: 'doc',
-										path: entry.path,
-										name: cmp,
-										title: entry.frontmatter.yaml.title
-											  ? entry.frontmatter.yaml.title
-											  : undefined,
-										teaser: entry.frontmatter.yaml.teaser
-											  ? entry.frontmatter.yaml.teaser
-											  : undefined,
-										teaserThumb:
-                                                entry.frontmatter.yaml.teaserthumb
-											  ? entry.frontmatter.yaml.teaserthumb
-											  : undefined,
-										entry: entry,
-										youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
-											   ? entry.frontmatter.yaml.youtubeThumbnail
-											   : undefined,
-										videoThumbnail: entry.frontmatter.yaml.videoThumbnail
-											   ? entry.frontmatter.yaml.videoThumbnail
-											   : undefined
-									});
-								}
-							} else {
-								// Every other component is an intermediate directory name
-								var de = findDirInEntryList(entryList, cmp);
-								if (de) {
-									dirEntry = de;
-									entryList = dirEntry.entries;
-								} else {
-									dirEntry = {
-										type: 'dir',
-										name: cmp,
-										entries: []
-									};
-									entryList.push(dirEntry);
-									entryList = dirEntry.entries;
-								}
-							}
-						}
-					} else {
-						if (!akasha.isIndexHtml(entry.path)) {
-							childTree.push({
-								type: 'doc',
-								path: entry.path,
-								name: entry.path,
-								title: entry.frontmatter.yaml.title
-									  ? entry.frontmatter.yaml.title
-									  : undefined,
-								teaser: entry.frontmatter.yaml.teaser
-									  ? entry.frontmatter.yaml.teaser
-									  : undefined,
-								teaserThumb:
-                                        entry.frontmatter.yaml.teaserthumb
-									  ? entry.frontmatter.yaml.teaserthumb
-									  : undefined,
-								entry: entry,
-								youtubeThumbnail: entry.frontmatter.yaml.youtubeThumbnail
-									   ? entry.frontmatter.yaml.youtubeThumbnail
-									   : undefined,
-								videoThumbnail: entry.frontmatter.yaml.videoThumbnail
-									   ? entry.frontmatter.yaml.videoThumbnail
-									   : undefined
-							});
-						}
-					}
-				}
-			});
-			
-			for (var i = 0; i < childTree.length; i++) {
-				var entry = childTree[i];
-				if (i.type === 'dir') {
-					entry.entries.sort(function(a, b) {
-						if (a.path < b.path) return -1;
-						else if (a.path === b.path) return 0;
-						else return 1;
-					});
-				}
-			}
-			
-			// These are two local functions used during rendering of the tree
-			var urlForDoc = function(doc) {
-				return akasha.urlForFile(doc.path);
-			};
-			var urlForDir = function(dir) {
-				if (!dir.path) {
-					return "undefined";
-				} else {
-					return akasha.urlForFile(dir.path);
-				}
-			};
-			var nameForDir = function(dir) {
-				return dir.title;
-			};
-			
-			var renderSubTree = function(dir) {
-				return akasha.partialSync(template ? template : "booknav-child-tree.html.ejs", {
-					tree: dir.entries,
-					urlForDoc: urlForDoc,
-					urlForDir: urlForDir,
-					nameForDir: nameForDir,
-					renderSubTree: renderSubTree
-				});
-			};
-			
-			// util.log(util.inspect(childTree));
-			
-			// Rendering of the tree starts here, and recursively uses the above
-			// two functions to render sub-portions of the tree
-			akasha.partial(template ? template : "booknav-child-tree.html.ejs", {
-				tree: childTree,
-				urlForDoc: urlForDoc,
-				urlForDir: urlForDir,
-				nameForDir: nameForDir,
-				renderSubTree: renderSubTree
-			},
-			function(err, treeHtml) {
-			    // util.log('rendered booknav '+ treeHtml);
-				if (err) next(err);
-				else {
-					$(element).replaceWith(treeHtml);
-					// util.log($.html());
-					next();
-				}
-			});
-		
-			/*akasha.eachDocument - selecting out any that are siblings or children of the current document
-			sort that list by file name
-			
-			for any with a slash ....
-				remove from list into a separate list
-				split the pathname on slashes
-			special kind of entry in document array for child directories
-			add these entries into appropriate places
-			
-			[
-				file {path },
-				file {path},
-				dir { path element, [
-						file {path},
-						file {path},
-						dir { path element, [
-							file {path}, ...
-						]}
-					] }
-				dir { path element, [
-					file {path}, ...
-				]}
-			]* /
-			
-		}, function(err) {
-		    // util.log('FINI book-child-tree '+ $.html());
-			if (err) done(err);
-			else done();
-		});
-	} */
 ];
