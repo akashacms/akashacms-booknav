@@ -2,7 +2,7 @@
 for (var i = 0; i < tree.entries.length; i++) { // in tree) {
     var item = tree.entries[i];
     // console.log('booknav-child-tree '+ item.type +' '+ item.name);
-    if (item.type === 'file' && item.filename !== 'index.html') {
+    if (item.type === 'file' && item.rendername !== 'index.html') {
         %><li>
             <a href="<%= urlForDoc(item) %>"><%= item.title %></a>
             <% if (item.teaser) { %><%= item.teaser %><% } %>

@@ -92,8 +92,8 @@ var findBookDocs = function(config, docDirPath) {
 		// log(`findBookDocs ${util.inspect(results)}`);
         results.sort((a,b) => {
             var indexre = /^(.*)\/([^\/]+\.html)$/;
-            var amatches = a.path.match(indexre);
-            var bmatches = b.path.match(indexre);
+            var amatches = a.renderpath.match(indexre);
+            var bmatches = b.renderpath.match(indexre);
             if (!amatches)
                 return -1;
             else if (!bmatches)
@@ -109,8 +109,8 @@ var findBookDocs = function(config, docDirPath) {
                     return 0;
                 } else return 1;
             }
-            if (a.path < b.path) return -1;
-            else if (a.path === b.path) return 0;
+            if (a.renderpath < b.renderpath) return -1;
+            else if (a.renderpath === b.renderpath) return 0;
             else return 1;
         });
         akasha.cache.set("booknav", "bookDocs-"+docDirPath, results);
@@ -203,7 +203,7 @@ var makeBookTree = function(config, docDirPath) {
 			// log(`makeBookTree ${util.inspect(doc)}`);
 		
             let curDirInTree = bookTreeRoot;
-			let components = componentizeFileName(doc.path);
+			let components = componentizeFileName(doc.renderpath);
 			// log(`makeBookTree components ${doc.path} ${util.inspect(components)}`);
 			
 			/*
@@ -223,9 +223,9 @@ var makeBookTree = function(config, docDirPath) {
 						curDirInTree.entries.push({
 							type: "file",
 							name: component.component,
-							path: doc.path,
-							filepath: doc.filepath,
-							filename: doc.filename,
+							docpath: doc.docpath,
+							renderpath: doc.renderpath,
+							rendername: doc.rendername,
 							teaser: doc.metadata.teaser,
 							title: doc.metadata.title,
 							document: doc
@@ -266,7 +266,7 @@ var makeBookTree = function(config, docDirPath) {
 			if (segment.type === "root" || segment.type === "dir") {
 				for (let entryidx in segment.entries) {
 					let entry = segment.entries[entryidx];
-					if (entry.filename === "index.html") {
+					if (entry.rendername === "index.html") {
 						segment.path = path.join(segment.path, 'index.html');
 						segment.title = entry.document.metadata.title;
 						if (entry.document.metadata.teaser) {
@@ -356,14 +356,14 @@ module.exports.mahabhuta = [
                 
                 // These are two local functions used during rendering of the tree
                 var urlForDoc = function(doc) {
-                    return '/'+ doc.filepath;
+                    return '/'+ doc.renderpath;
                 };
                 var urlForDir = function(dir) {
 					// log(`urlForDir ${util.inspect(dir)}`);
-                    if (!dir.path) {
+                    if (!dir.docpath) {
                         return "undefined";
                     } else {
-                        return '/'+ dir.path;
+                        return '/'+ dir.docpath;
                     }
                 };
 				
