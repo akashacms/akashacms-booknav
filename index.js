@@ -118,179 +118,6 @@ var findBookDocs = function(config, docDirPath) {
     });
 };
 
-/**
- * Used by makeBookTree to convert a pathname to an array like this:
- *
- * [ { type: 'dir', component: 'foo', entries: [] },
- *   { type: 'dir', component: 'bar', entries: [] },
- *   { type: 'dir', component: 'bas', entries: [] },
- *   { type: 'dir', component: 'baz', entries: [] },
- *   { type: 'file', component: 'xyzzy.html' } ]
- *
- */
-var componentizeFileName = module.exports.componentizeFileName = function(filename) {
-	var ret = [];
-	ret.push({ type: 'file', component: path.basename(filename) });
-	for (filename = path.dirname(filename); filename != '.' && filename != '/'; filename = path.dirname(filename)) {
-		ret.unshift({ type: 'dir', component: path.basename(filename), entries: [] });
-	}
-	return ret;
-};
-
-/**
- *
- *
- *
-    {
-        type: "root",
-        title: "copied from index.html",
-        teaser: "copied from index.html",
-        name: undefined,
-        entries: [
-            // Made up of entries of one of these two types
-            {
-                type: "file",
-                title: "copied from metadata",
-                teaser: "copied from metadata",
-                name: "file name .ext",
-                document: see object created in findBookDocs,
-            },
-            {
-                type: "dir",
-                title: "copied from metadata of index.html",
-                teaser: "copied from metadata of index.html",
-                name: "directory name",
-                entries: [
-                    // repeat 
-                ]
-            }
-        ]
-    }
- *
- */
-var makeBookTree = function(config, docDirPath) {
-	
-	// log(`makeBookTree TOP ${docDirPath}`);
-	
-    var bookTreeRoot = {
-        type: "root",
-        entries: []
-    };
-	
-	var findComponentEntry = function(treeEntry, component) {
-		for (var i = 0; i < treeEntry.entries.length; i++) {
-			var entry = treeEntry.entries[i];
-			if (entry && entry.name === component.component) {
-				return entry;
-            }
-        }
-		return undefined;
-	};
-    
-    return findBookDocs(config, docDirPath)
-    .then(bookdocs => {
-		
-		// log(`makeBookTree ${util.inspect(bookdocs)}`);
-        
-        // split the path into components
-        // for each directory component ensure it has an object in the tree
-        // at the file portion of the name, add its data to the appropriate object in the tree
-        // bookdocs already has full metadata
-        
-        for (let docidx in bookdocs) {
-            
-			let doc = bookdocs[docidx];
-			// log(`makeBookTree ${util.inspect(doc)}`);
-		
-            let curDirInTree = bookTreeRoot;
-			let components = componentizeFileName(doc.renderpath);
-			// log(`makeBookTree components ${doc.path} ${util.inspect(components)}`);
-			
-			/*
-			 *
-			 * [ { type: 'dir', component: 'foo', entries: [] },
-			 *   { type: 'dir', component: 'bar', entries: [] },
-			 *   { type: 'dir', component: 'bas', entries: [] },
-			 *   { type: 'dir', component: 'baz', entries: [] },
-			 *   { type: 'file', component: 'xyzzy.html' } ]
-			 *
-			 */
-            for (let i = 0; i <  components.length; i++) {
-                let component = components[i];
-				if (component.type === 'file') {
-					let entry = findComponentEntry(curDirInTree, component);
-					if (!entry) {
-						curDirInTree.entries.push({
-							type: "file",
-							name: component.component,
-							docpath: doc.docpath,
-							renderpath: doc.renderpath,
-							rendername: doc.rendername,
-							teaser: doc.metadata.teaser,
-							title: doc.metadata.title,
-							document: doc
-						});
-					}
-                } else if (component.type === 'dir') {
-					let entry = findComponentEntry(curDirInTree, component);
-					if (!entry) {
-						entry = {
-                            type: "dir",
-                            name: component.component,
-                            entries: []
-                        };
-						entry.path = (curDirInTree.path)
-								? path.join(curDirInTree.path, component.component)
-							 	: component.component;
-                        curDirInTree.entries.push(entry);
-                    }
-					curDirInTree = entry;
-                } else {
-					// ERROR
-				}
-            }
-        }
-        
-        return bookTreeRoot;
-    })
-	.then(bookTree => {
-
-		// log(`makeBookTree fixTree ${util.inspect(bookTree)}`);
-		
-		var fixTreeSegment = function(segment) {
-			segment.entries.sort((a,b) => {
-				if (a.name < b.name) return -1;
-				else if (a.name === b.name) return 0;
-				else return 1;
-			});
-			if (segment.type === "root" || segment.type === "dir") {
-				for (let entryidx in segment.entries) {
-					let entry = segment.entries[entryidx];
-					if (entry.rendername === "index.html") {
-						segment.path = path.join(segment.path, 'index.html');
-						segment.title = entry.document.metadata.title;
-						if (entry.document.metadata.teaser) {
-							segment.teaser = entry.document.metadata.teaser;
-						}
-					}
-				}
-			}
-			// log(`makeBookTree fixed segment ${util.inspect(segment)}`);
-			for (let entryidx in segment.entries) {
-				let entry = segment.entries[entryidx];
-				if (entry.type === "dir") {
-					fixTreeSegment(entry);
-				}
-			}
-		};
-		
-		// Sort the entries in the whole tree by their file name
-		fixTreeSegment(bookTree);
-		
-		return bookTree;
-	});
-};
-
 module.exports.mahabhuta = [
 	function($, metadata, dirty, done) {
 		if ($('book-next-prev').get(0)) {
@@ -349,8 +176,11 @@ module.exports.mahabhuta = [
 			if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
 			
 			// log(`book-child-tree ${metadata.document.path} ==> ${docDirPath}`);
-            
-            makeBookTree(metadata.config, docDirPath)
+					
+			findBookDocs(metadata.config, docDirPath)
+			.then(bookdocs => {
+				return akasha.documentTree(metadata.config, bookdocs); 
+			})
             .then(bookTree => {
 				// log(`book-child-tree ${util.inspect(bookTree)}`);
                 
@@ -359,23 +189,23 @@ module.exports.mahabhuta = [
                     return '/'+ doc.renderpath;
                 };
                 var urlForDir = function(dir) {
-					// log(`urlForDir ${util.inspect(dir)}`);
-                    if (!dir.docpath) {
+					log('urlForDir '+ util.inspect(dir));
+                    if (!dir.dirpath) {
                         return "undefined";
                     } else {
-                        return '/'+ dir.docpath;
+                        return '/'+ dir.dirpath;
                     }
                 };
 				
                 var renderSubTree = function(dir) {
-					// log(`renderSubTree ${util.inspect(dir)}`);
+					// log('renderSubTree '+ util.inspect(dir));
                     return akasha.partialSync(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
                         tree: dir,
                         urlForDoc, urlForDir, renderSubTree
                     });
                 };
                 
-                // util.log(util.inspect(childTree));
+                log('book-child-tree bookTree '+ util.inspect(bookTree));
                 
                 // Rendering of the tree starts here, and recursively uses the above
                 // two functions to render sub-portions of the tree
