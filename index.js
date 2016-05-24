@@ -22,8 +22,8 @@
 const path     = require('path');
 const util     = require('util');
 const async    = require('async');
-const globfs   = require('globfs');
-const akasha   = require('../akasharender');
+// const globfs   = require('globfs');
+const akasha   = require('akasharender');
 
 const log   = require('debug')('akasha:booknav-plugin');
 const error = require('debug')('akasha:error-booknav-plugin');
@@ -157,7 +157,11 @@ module.exports.mahabhuta = [
                 } else {
                     done(new Error('did not find document in book'));
                 }
-            });
+            })
+			.catch(err => {
+				error("findBookDocs failed "+ err);
+				done(err);
+			});
 		} else done();
 	},
 	
