@@ -1,7 +1,7 @@
 /**
  *
  * Copyright 2013-2015 David Herron
- * 
+ *
  * This file is part of AkashaCMS-booknav (http://akashacms.com/).
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@ module.exports = class BooknavPlugin extends akasha.Plugin {
 	constructor() {
 		super("akashacms-booknav");
 	}
-	
+
 	configure(config) {
         this._config = config;
 		config.addPartialsDir(path.join(__dirname, 'partials'));
@@ -78,12 +78,12 @@ var findDirInEntryList = function(entryList, cmp) {
 */
 
 var findBookDocs = function(config, docDirPath) {
-        
+
     var cachedBookDocs = akasha.cache.get("booknav", "bookDocs-"+docDirPath);
     if (cachedBookDocs) {
         return Promise.resolve(cachedBookDocs);
     }
-    
+
     return akasha.documentSearch(config, {
         rootPath: docDirPath,
         renderers: [ akasha.HTMLRenderer ]
@@ -151,7 +151,7 @@ module.exports.mahabhuta = [
                     })
                     .then(html => {
                         $('book-next-prev').replaceWith(html);
-                        done();	
+                        done();
                     })
                     .catch(err => { done(err); });
                 } else {
@@ -159,35 +159,37 @@ module.exports.mahabhuta = [
                 }
             })
 			.catch(err => {
-				error("findBookDocs failed "+ err);
+                error('book-next-prev '+ metadata.document.path +' Errored with '+ (err.stack ? err.stack : err));
+                done('book-next-prev '+ metadata.document.path +' Errored with '+ (err.stack ? err.stack : err));
 				done(err);
 			});
 		} else done();
 	},
-	
+
 	function($, metadata, dirty, done) {
 		var elements = [];
 		$('book-child-tree').each(function(i, elem) { elements.push(elem); });
         if (elements.length <= 0) return done();
 		log('book-child-tree');
-		async.eachSeries(elements, 
+		async.eachSeries(elements,
         (element, next) => {
 			// logger.info(element.name);
-			
+
 			var template = $(element).attr('template');
-			
+
 			var docDirPath = path.dirname(metadata.document.path);
 			if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
-			
+
 			// log(`book-child-tree ${metadata.document.path} ==> ${docDirPath}`);
-					
+
 			findBookDocs(metadata.config, docDirPath)
 			.then(bookdocs => {
-				return akasha.documentTree(metadata.config, bookdocs); 
+				if (!bookdocs) throw new Error("Did not find bookdocs for "+ docDirPath);
+				return akasha.documentTree(metadata.config, bookdocs);
 			})
             .then(bookTree => {
 				// log(`book-child-tree ${util.inspect(bookTree)}`);
-                
+
                 // These are two local functions used during rendering of the tree
                 var urlForDoc = function(doc) {
                     return '/'+ doc.renderpath;
@@ -200,7 +202,7 @@ module.exports.mahabhuta = [
                         return '/'+ dir.dirpath;
                     }
                 };
-				
+
                 var renderSubTree = function(dir) {
 					// log('renderSubTree '+ util.inspect(dir));
                     return akasha.partialSync(metadata.config, template ? template : "booknav-child-tree.html.ejs", {
@@ -208,9 +210,9 @@ module.exports.mahabhuta = [
                         urlForDoc, urlForDir, renderSubTree
                     });
                 };
-                
+
                 log('book-child-tree bookTree '+ util.inspect(bookTree));
-                
+
                 // Rendering of the tree starts here, and recursively uses the above
                 // two functions to render sub-portions of the tree
 				// log(`renderTree ${util.inspect(bookTree)}`);
@@ -227,12 +229,14 @@ module.exports.mahabhuta = [
                 .catch(err => { next(err); });
             })
             .catch(err => { next(err); });
-        }, 
+        },
         err => {
 		    // util.log('FINI book-child-tree '+ $.html());
-			if (err) done(err);
-			else done();
+			if (err) {
+                error('book-child-tree '+ metadata.document.path +' Errored with '+ (err.stack ? err.stack : err));
+                done('book-child-tree '+ metadata.document.path +' Errored with '+ (err.stack ? err.stack : err));
+			} else done();
 		});
     },
-    
+
 ];
