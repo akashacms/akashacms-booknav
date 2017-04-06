@@ -19,6 +19,7 @@
 
 'use strict';
 
+const fs       = require('fs-extra-promise');
 const path     = require('path');
 const util     = require('util');
 const async    = require('async');
@@ -188,18 +189,36 @@ module.exports.mahabhuta = [
 				return akasha.documentTree(metadata.config, bookdocs);
 			})
             .then(bookTree => {
-				// log(`book-child-tree ${util.inspect(bookTree)}`);
+				// console.log(`book-child-tree ${util.inspect(bookTree)}`);
 
                 // These are two local functions used during rendering of the tree
                 var urlForDoc = function(doc) {
+                    // console.log(`urlForDoc ${doc.renderpath}`);
                     return '/'+ doc.renderpath;
                 };
                 var urlForDir = function(dir) {
-					log('urlForDir '+ util.inspect(dir));
+					// console.log('urlForDir '+ util.inspect(dir));
+                    // console.log(`urlForDir ${dir.dirpath}`);
                     if (!dir.dirpath) {
                         return "undefined";
                     } else {
-                        return '/'+ dir.dirpath;
+                        var p = '/'+ dir.dirpath;
+                        if (!fs.existsSync(p)) {
+                            // console.log(`urlForDir ${p} ! exist, returning ${p}`);
+                            return p;
+                        }
+                        var pStat = fs.statSync(p);
+                        if (pStat.isDirectory()) {
+                            p = path.join(p, 'index.html');
+                        }
+                        if (fs.existsSync(p)) {
+                            // console.log(`urlForDir ${p} exists returning <a> tag`);
+                            return `<a href="${p}">${item.title ? item.title : p}</a>`;
+                        } else {
+                            // console.log(`urlForDir ${p} ! exist, returning ${p}`);
+                            return p;
+                        }
+
                     }
                 };
 
@@ -211,7 +230,7 @@ module.exports.mahabhuta = [
                     });
                 };
 
-                log('book-child-tree bookTree '+ util.inspect(bookTree));
+                // console.log('book-child-tree bookTree '+ util.inspect(bookTree));
 
                 // Rendering of the tree starts here, and recursively uses the above
                 // two functions to render sub-portions of the tree
@@ -221,7 +240,7 @@ module.exports.mahabhuta = [
                     urlForDoc, urlForDir, renderSubTree
                 })
                 .then(treeHtml => {
-                    // util.log('rendered booknav '+ treeHtml);
+                    // console.log(`render booknav ${treeHtml}`);
                     $(element).replaceWith(treeHtml);
                     // util.log($.html());
                     next();
