@@ -44,8 +44,13 @@ title: Nose Scratching for Fun and Profit
 ---
 ```
 
-# Custom Tags
+For a working example, see: https://github.com/akashacms/akashacms-example/tree/akasharender/documents/folder
 
+An index page: https://github.com/akashacms/akashacms-example/blob/akasharender/documents/folder/index.html.md
+
+The matching page template: https://github.com/akashacms/akashacms-example/blob/akasharender/layouts/index-page.html.ejs
+
+# Custom Tags
 
 #### Rendering the book hierarchy
 
