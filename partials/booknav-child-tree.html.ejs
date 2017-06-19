@@ -1,19 +1,23 @@
 <ul class="booknav-tree"><%
-var keys = Object.keys(tree);
-for (var i = 0; i < tree.length; i++) { // in tree) {
-    var item = tree[i];
-    if (item.type === 'doc') {
+for (var i = 0; i < tree.children.length; i++) { // in tree) {
+    var item = tree.children[i];
+    // console.log('booknav-child-tree '+ item.type +' '+ item.rendername);
+    if (item.type === 'file' && item.rendername !== 'index.html') {
         %><li>
             <a href="<%= urlForDoc(item) %>"><%= item.title %></a>
-            <% if (item.teaser) { %><%= item.teaser %><% } %>
+            <% if (item.teaser) { %>: <%= item.teaser %><% } %>
         </li><%
-    } else {
+    } else if (item.type === 'dir') {
         %><li>
             <%
             var url = urlForDir(item);
             if (url !== "undefined") {
-                %><a href="<%= url %>"><%= nameForDir(item) %></a><%
-                if (item.teaser) { %><%= item.teaser %><% }
+                // % ><a href="< %= url % >">< %= item.title ? item.title : url % ></a>< %
+                %><%- url %><%
+                if (item.teaser) { %>: <%= item.teaser %><% }
+            } else {
+                %><%= item.dirpath %><%
+                if (item.teaser) { %>: <%= item.teaser %><% }
             } %>
             <%- renderSubTree(item) %>
         </li><%
