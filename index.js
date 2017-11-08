@@ -19,11 +19,10 @@
 
 'use strict';
 
-const fs       = require('fs-extra-promise');
+const fs       = require('fs-extra');
 const path     = require('path');
 const util     = require('util');
 const async    = require('async');
-// const globfs   = require('globfs');
 const akasha   = require('akasharender');
 
 const log   = require('debug')('akasha:booknav-plugin');

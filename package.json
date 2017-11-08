@@ -11,9 +11,9 @@
     "type": "git",
     "url": "git://github.com/akashacms/akashacms-booknav.git"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "engines": {
-    "node": ">=4.x"
+    "node": ">=6.x"
   },
   "scripts": {
     "test": "mocha"
@@ -21,8 +21,7 @@
   "dependencies": {
     "async": ">=0.1.22",
     "debug": "^2.2.0",
-    "globfs": "^0.1.2",
-    "fs-extra-promise": "*"
+    "fs-extra": "*"
   },
   "devDependencies": {
     "mocha": "^2.4.5",
