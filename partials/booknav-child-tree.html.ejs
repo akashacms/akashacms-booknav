@@ -2,6 +2,7 @@
 for (var i = 0; i < tree.children.length; i++) { // in tree) {
     var item = tree.children[i];
     // console.log('booknav-child-tree '+ item.type +' '+ item.rendername);
+    // % ><div>DEBUG < %= item.type % > < %= item.rendername % > < %= item.title % ></div>< %
     if (item.type === 'file' && item.rendername !== 'index.html') {
         %><li>
             <a href="<%= urlForDoc(item) %>"><%= item.title %></a>
@@ -12,8 +13,8 @@ for (var i = 0; i < tree.children.length; i++) { // in tree) {
             <%
             var url = urlForDir(item);
             if (url !== "undefined") {
-                // % ><a href="< %= url % >">< %= item.title ? item.title : url % ></a>< %
-                %><%- url %><%
+                %><a href="<%= url %>"><%= item.title ? item.title : url %></a><%
+                // % >< %- url % >< %
                 if (item.teaser) { %>: <%= item.teaser %><% }
             } else {
                 %><%= item.dirpath %><%
