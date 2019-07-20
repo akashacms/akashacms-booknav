@@ -22,102 +22,170 @@
 const fs       = require('fs-extra');
 const path     = require('path');
 const util     = require('util');
-const async    = require('async');
 const akasha   = require('akasharender');
+const mahabhuta = akasha.mahabhuta;
 
-const log   = require('debug')('akasha:booknav-plugin');
-const error = require('debug')('akasha:error-booknav-plugin');
+const pluginName = "akashacms-booknav";
+
+const _plugin_config = Symbol('config');
+const _plugin_options = Symbol('options');
 
 module.exports = class BooknavPlugin extends akasha.Plugin {
 	constructor() {
-		super("akashacms-booknav");
+		super(pluginName);
 	}
 
-	configure(config) {
-        this._config = config;
+    configure(config, options) {
+        this[_plugin_config] = config;
+        this[_plugin_options] = options;
+        options.config = config;
 		config.addPartialsDir(path.join(__dirname, 'partials'));
-		config.addMahabhuta(module.exports.mahabhuta);
+        config.addMahabhuta(module.exports.mahabhutaArray(options));
 	}
+
+    get config() { return this[_plugin_config]; }
+    get options() { return this[_plugin_options]; }
 
 }
 
-/*
-var getPrevFileName = function(entry) {
-    if (entry && entry.hasOwnProperty('frontmatter')
-        && entry.frontmatter.hasOwnProperty("yaml")
-        && entry.frontmatter.yaml.hasOwnProperty("booknav-prev"))
-        return entry.frontmatter.yaml["booknav-prev"];
-    else
-        return undefined;
-};
-var getNextFileName = function(entry) {
-    if (entry && entry.hasOwnProperty('frontmatter')
-        && entry.frontmatter.hasOwnProperty("yaml")
-        && entry.frontmatter.yaml.hasOwnProperty("booknav-next"))
-        return entry.frontmatter.yaml["booknav-next"];
-    else
-        return undefined;
-};
-var getUpFileName = function(entry) {
-    if (entry && entry.hasOwnProperty('frontmatter')
-        && entry.frontmatter.hasOwnProperty("yaml")
-        && entry.frontmatter.yaml.hasOwnProperty("booknav-up"))
-        return entry.frontmatter.yaml["booknav-up"];
-    else
-        return undefined;
+module.exports.mahabhutaArray = function(options) {
+    let ret = new mahabhuta.MahafuncArray(pluginName, options);
+    ret.addMahafunc(new NextPrevElement());
+    ret.addMahafunc(new ChildTreeElement());
+    return ret;
 };
 
-var findDirInEntryList = function(entryList, cmp) {
-    for (var ch = 0; ch < entryList.length; ch++) {
-        if (entryList[ch].type === 'dir' && entryList[ch].name === cmp) {
-            return entryList[ch];
-        }
-    }
-    return undefined;
-};
-*/
-
-var findBookDocs = function(config, docDirPath) {
+var findBookDocs = async function(config, docDirPath) {
 
     var cachedBookDocs = akasha.cache.get("booknav", "bookDocs-"+docDirPath);
     if (cachedBookDocs) {
-        return Promise.resolve(cachedBookDocs);
+        return cachedBookDocs;
     }
 
-    return akasha.documentSearch(config, {
+    let results = await akasha.documentSearch(config, {
         rootPath: docDirPath,
         renderers: [ akasha.HTMLRenderer ]
-    })
-    .then(results => {
-		// log(`findBookDocs ${util.inspect(results)}`);
-        results.sort((a,b) => {
-            var indexre = /^(.*)\/([^\/]+\.html)$/;
-            var amatches = a.renderpath.match(indexre);
-            var bmatches = b.renderpath.match(indexre);
-            if (!amatches)
-                return -1;
-            else if (!bmatches)
-                return 1;
-            if (amatches[1] === bmatches[1]) {
-                if (amatches[2] === "index.html") {
-                    return -1;
-                } else if (bmatches[2] === "index.html") {
-                    return 1;
-                } else if (amatches[2] < bmatches[2]) {
-                    return -1;
-                } else if (amatches[2] === bmatches[2]) {
-                    return 0;
-                } else return 1;
-            }
-            if (a.renderpath < b.renderpath) return -1;
-            else if (a.renderpath === b.renderpath) return 0;
-            else return 1;
-        });
-        akasha.cache.set("booknav", "bookDocs-"+docDirPath, results);
-        return results;
     });
+    // log(`findBookDocs ${util.inspect(results)}`);
+    results.sort((a,b) => {
+        var indexre = /^(.*)\/([^\/]+\.html)$/;
+        var amatches = a.renderpath.match(indexre);
+        var bmatches = b.renderpath.match(indexre);
+        if (!amatches)
+            return -1;
+        else if (!bmatches)
+            return 1;
+        if (amatches[1] === bmatches[1]) {
+            if (amatches[2] === "index.html") {
+                return -1;
+            } else if (bmatches[2] === "index.html") {
+                return 1;
+            } else if (amatches[2] < bmatches[2]) {
+                return -1;
+            } else if (amatches[2] === bmatches[2]) {
+                return 0;
+            } else return 1;
+        }
+        if (a.renderpath < b.renderpath) return -1;
+        else if (a.renderpath === b.renderpath) return 0;
+        else return 1;
+    });
+    akasha.cache.set("booknav", "bookDocs-"+docDirPath, results);
+    return results;
 };
 
+
+class NextPrevElement extends mahabhuta.CustomElement {
+    get elementName() { return "book-next-prev"; }
+    async process($element, metadata, dirty) {
+        var bookRoot = $element.attr('book-root');
+        if (bookRoot && bookRoot.charAt(0) === '/') {
+            bookRoot = bookRoot.substring(1);
+        }
+        bookRoot = path.dirname(bookRoot);
+        let bookdocs = await findBookDocs(this.array.options.config, bookRoot);
+        var docIndex = -1;
+        for (var j = 0; bookdocs && j < bookdocs.length; j++) {
+            // util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
+            if (bookdocs[j].path === metadata.document.path) {
+                docIndex = j;
+            }
+        }
+        if (docIndex >= 0) {
+            var prevDoc = docIndex === 0
+                        ? bookdocs[bookdocs.length - 1]
+                        : bookdocs[docIndex - 1];
+            var nextDoc = docIndex === bookdocs.length - 1
+                        ? bookdocs[0]
+                        : bookdocs[docIndex + 1];
+            return akasha.partial(this.array.options.config, 'booknav-next-prev.html.ejs', {
+                prevDoc, nextDoc // , thisDoc: docEntry, documents: bookDocs
+            });
+        } else {
+            throw new Error(`did not find document in book ${metadata.document.path}`);
+        }
+    }
+}
+
+class ChildTreeElement extends mahabhuta.CustomElement {
+    get elementName() { return "book-child-tree"; }
+    async process($element, metadata, dirty) {
+        var template = $element.attr('template');
+
+        var docDirPath = path.dirname(metadata.document.path);
+        if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
+        let bookdocs = await findBookDocs(this.array.options.config, docDirPath);
+        if (!bookdocs) throw new Error("Did not find bookdocs for "+ docDirPath);
+        let bookTree = await akasha.documentTree(this.array.options.config, bookdocs);
+
+        // These are two local functions used during rendering of the tree
+        var urlForDoc = (doc) => {
+            // console.log(`urlForDoc ${doc.renderpath}`);
+            return '/'+ doc.renderpath;
+        };
+        var urlForDir = (dir) => {
+            // console.log('urlForDir '+ util.inspect(dir));
+            // console.log(`urlForDir ${dir.dirpath}`);
+            if (!dir.dirpath) {
+                return "undefined";
+            } else {
+                var p = '/'+ dir.dirpath;
+                if (!fs.existsSync(p)) {
+                    // console.log(`urlForDir ${p} ! exist, returning ${p}`);
+                    return p;
+                }
+                var pStat = fs.statSync(p);
+                if (pStat.isDirectory()) {
+                    p = path.join(p, 'index.html');
+                }
+                if (fs.existsSync(p)) {
+                    // console.log(`urlForDir ${p} exists returning <a> tag`);
+                    return `<a href="${p}">${item.title ? item.title : p}</a>`;
+                } else {
+                    // console.log(`urlForDir ${p} ! exist, returning ${p}`);
+                    return p;
+                }
+
+            }
+        };
+
+        var renderSubTree = (dir) => {
+            // log('renderSubTree '+ util.inspect(dir));
+            return akasha.partialSync(this.array.options.config, template ? template : "booknav-child-tree.html.ejs", {
+                tree: dir,
+                urlForDoc, urlForDir, renderSubTree
+            });
+        };
+        
+        return akasha.partial(this.array.options.config,
+                template ? template : "booknav-child-tree.html.ejs", {
+            tree: bookTree,
+            urlForDoc, urlForDir, renderSubTree
+        })
+    }
+}
+
+/* 
 module.exports.mahabhuta = [
 	function($, metadata, dirty, done) {
 		if ($('book-next-prev').get(0)) {
@@ -258,3 +326,4 @@ module.exports.mahabhuta = [
     },
 
 ];
+*/
