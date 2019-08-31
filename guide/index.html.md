@@ -14,7 +14,7 @@ With an AkashaCMS website setup, add the following to `package.json`
 ```
   "dependencies": {
     ...
-    "akashacms-booknav": ">=0.6",
+    "akashacms-booknav": ">=0.7.1",
     ...
   }
 ```
@@ -72,4 +72,4 @@ The document metadata consulted is:
 
 #### Next/Previous
 
-Use: `<book-next-prev>`
+Use: `<book-next-prev book-root="/path/to/index.html">`

@@ -1,4 +1,8 @@
 <div>
-    <span style="float: left">&laquo; <a href="/<%= prevDoc.rendername %>"><%= prevDoc.title %></a></span>
-    <span style="float: right"><a href="/<%= nextDoc.rendername %>"><%= nextDoc.title %></a> &raquo;</span>
+    <span class="booknav-prevlink" style="float: left">
+        &laquo; <a href="/<%= prevDoc.renderpath %>"><%= prevDoc.title %></a>
+    </span>
+    <span class="booknav-nextlink" style="float: right">
+        <a href="/<%= nextDoc.renderpath %>"><%= nextDoc.title %></a> &raquo;
+    </span>
 </div>

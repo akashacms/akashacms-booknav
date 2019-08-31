@@ -103,11 +103,13 @@ class NextPrevElement extends mahabhuta.CustomElement {
             bookRoot = bookRoot.substring(1);
         }
         bookRoot = path.dirname(bookRoot);
+        // console.log(`NextPrevElement root ${bookRoot}`);
         let bookdocs = await findBookDocs(this.array.options.config, bookRoot);
+        // console.log(`NextPrevElement root ${bookRoot}`, bookdocs);
         var docIndex = -1;
         for (var j = 0; bookdocs && j < bookdocs.length; j++) {
-            // util.log('looking for '+ docEntry.path +' === '+ bookDocs[j].path);
-            if (bookdocs[j].path === metadata.document.path) {
+            // console.log('looking for '+ metadata.document.path +' === '+ bookdocs[j].docpath);
+            if (bookdocs[j].docpath === metadata.document.path) {
                 docIndex = j;
             }
         }
@@ -118,6 +120,8 @@ class NextPrevElement extends mahabhuta.CustomElement {
             var nextDoc = docIndex === bookdocs.length - 1
                         ? bookdocs[0]
                         : bookdocs[docIndex + 1];
+            // console.log(`NextPrevElement prevDoc `, prevDoc);
+            // console.log(`NextPrevElement nextDoc `, nextDoc);
             return akasha.partial(this.array.options.config, 'booknav-next-prev.html.ejs', {
                 prevDoc, nextDoc // , thisDoc: docEntry, documents: bookDocs
             });
