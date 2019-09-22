@@ -34,7 +34,7 @@ describe('build site', function() {
     });
 });
 
-describe('build site', function() {
+describe('check pages', function() {
     it('should have correct /folder/index.html', async function() {
 
         let { html, $ } = await akasha.readRenderedFile(config, 
@@ -44,14 +44,14 @@ describe('build site', function() {
         assert.isString(html, 'result isString');
 
         assert.equal($('.booknav-tree').length, 4);
-        assert.equal($('.booknav-tree a[href="/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/page1.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 1);
 
-        assert.equal($('.booknav-prevlink a[href="/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="/folder/folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="folder/folder/index.html"]').length, 1);
     });
 
     it('should have correct /folder/folder/index.html', async function() {
@@ -63,14 +63,14 @@ describe('build site', function() {
         assert.isString(html, 'result isString');
 
         assert.equal($('.booknav-tree').length, 4);
-        assert.equal($('.booknav-tree a[href="/folder"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/page1.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href=".."]').length, 1);
+        assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 1);
 
-        assert.equal($('.booknav-prevlink a[href="/folder/folder/folder/page2.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="../index.html"]').length, 1);
     });
 
     it('should have correct /folder/folder/folder/index.html', async function() {
@@ -82,14 +82,14 @@ describe('build site', function() {
         assert.isString(html, 'result isString');
 
         assert.equal($('.booknav-tree').length, 4);
-        assert.equal($('.booknav-tree a[href="/folder"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/page1.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="/folder/folder/folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="../.."]').length, 1);
+        assert.equal($('.booknav-tree a[href=".."]').length, 1);
+        assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="page1.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="page2.html"]').length, 1);
 
-        assert.equal($('.booknav-prevlink a[href="/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="/folder/folder/folder/page1.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="../../index.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="page1.html"]').length, 1);
     });
 
     it('should have correct /folder/folder/folder/page1.html', async function() {
@@ -109,8 +109,8 @@ describe('build site', function() {
 
         assert.include($('h1').html(), "Page 1");
 
-        assert.equal($('.booknav-prevlink a[href="/folder/folder/folder/index.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="/folder/folder/folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="index.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="page2.html"]').length, 1);
     });
 
     it('should have correct /folder/folder/folder/page2.html', async function() {
@@ -130,8 +130,8 @@ describe('build site', function() {
 
         assert.include($('h1').html(), "Page 2");
 
-        assert.equal($('.booknav-prevlink a[href="/folder/folder/folder/page1.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="/folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="page1.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="../index.html"]').length, 1);
     });
 });
 
