@@ -3,9 +3,9 @@ layout: plugin-documentation.html.ejs
 title: AskashaCMS "Book-style-navigation" plugin documentation
 ---
 
-The `akashacms-booknav` plugin is inspired by the Drupal `book` content type.  It consists of a tree-structured arrangement of pages, and at the content-area bottom of each page is navigational aids showing the "Next" and "Previous" items in the "book", as well as part of the book hierarchy.
+The `@akashacms/plugins-booknav` plugin is inspired by the Drupal `book` content type.  It consists of a tree-structured arrangement of pages, and at the content-area bottom of each page is navigational aids showing the "Next" and "Previous" items in the "book", as well as part of the book hierarchy.
 
-The part of `akashacms-booknav` which works correctly generates an indented listing of all the child documents to the current document.  The `akashacms-breadcrumbs` plugin is useful in combination, as it automatically traces the hierarchy up to the website root directory.
+The part of `@akashacms/plugins-booknav` which works correctly generates an indented listing of all the child documents to the current document.  The `akashacms-breadcrumbs` plugin is useful in combination, as it automatically traces the hierarchy up to the website root directory.
 
 # Installation
 
@@ -14,7 +14,7 @@ With an AkashaCMS website setup, add the following to `package.json`
 ```
   "dependencies": {
     ...
-    "akashacms-booknav": ">=0.7.1",
+    "@akashacms/plugins-booknav": "^0.7.x",
     ...
   }
 ```
@@ -25,8 +25,8 @@ Once added to `package.json` run: `npm install`
 
 In `config.js` for the website:
 
-```
-config.use(require('akashacms-booknav'));
+```js
+config.use(require('@akashacms/plugins-booknav'));
 ```
 
 ## Page layout template
@@ -54,7 +54,7 @@ The matching page template: https://github.com/akashacms/akashacms-example/blob/
 
 The page layout template should contain this:
 
-```
+```html
 <book-child-tree></book-child-tree>
 ```
 

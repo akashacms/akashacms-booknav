@@ -25,7 +25,7 @@ const util     = require('util');
 const akasha   = require('akasharender');
 const mahabhuta = akasha.mahabhuta;
 
-const pluginName = "akashacms-booknav";
+const pluginName = "@akashacms/plugins-booknav";
 
 const _plugin_config = Symbol('config');
 const _plugin_options = Symbol('options');
