@@ -5,32 +5,66 @@ const assert = require('chai').assert;
 const booknav = require('../index');
 const util = require('util');
 
-const config = new akasha.Configuration();
-config.rootURL("https://example.akashacms.com");
-config.configDir = __dirname;
-config.addLayoutsDir('layouts')
-      .addDocumentsDir('documents');
-config.use(booknav);
-config.setMahabhutaConfig({
-    recognizeSelfClosing: true,
-    recognizeCDATA: true,
-    decodeEntities: true
-});
-config.prepare();
-
+let config;
 
 describe('build site', function() {
-    it('should build site', async function() {
+    it('should construct configuration', async function() {
+
         this.timeout(15000);
-        let failed = false;
-        let results = await akasha.render(config);
-        for (let result of results) {
-            if (result.error) {
-                failed = true;
-                console.error(result.error);
-            }
+        config = new akasha.Configuration();
+        config.rootURL("https://example.akashacms.com");
+        config.configDir = __dirname;
+        config.addLayoutsDir('layouts')
+            .addDocumentsDir('documents');
+        config.use(booknav);
+        config.setMahabhutaConfig({
+            recognizeSelfClosing: true,
+            recognizeCDATA: true,
+            decodeEntities: true
+        });
+        config.prepare();
+
+    });
+
+    it('should run setup', async function() {
+        this.timeout(30000);
+        try {
+            await config.setup();
+        } catch (e) {
+            console.error(e);
+            throw e;
         }
-        assert.isFalse(failed);
+    });
+
+    it('should successfully setup file caches', async function() {
+        this.timeout(75000);
+        try {
+            await (await akasha.filecache).documents.isReady();
+            // (await akasha.filecache).assets.isReady();
+            await (await akasha.filecache).layouts.isReady();
+            await (await akasha.filecache).partials.isReady();
+        } catch (e) {
+            console.error(e);
+            throw e;
+        }
+    });
+
+    it('should build site', async function() {
+        this.timeout(75000);
+        try {
+            let failed = false;
+            let results = await akasha.render(config);
+            for (let result of results) {
+                if (result.error) {
+                    failed = true;
+                    console.error(result.error);
+                }
+            }
+            assert.isFalse(failed);
+        } catch (e) {
+            console.error(e);
+            throw e;
+        }
     });
 });
 
@@ -43,10 +77,10 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 4);
+        assert.equal($('.booknav-tree').length, 3);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
+        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 2);
         assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 1);
 
@@ -62,10 +96,10 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 4);
-        assert.equal($('.booknav-tree a[href=".."]').length, 1);
+        assert.equal($('.booknav-tree').length, 2);
+        assert.equal($('.booknav-tree a[href="../index.html"]').length, 0);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
         assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 1);
 
@@ -81,9 +115,9 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 4);
-        assert.equal($('.booknav-tree a[href="../.."]').length, 1);
-        assert.equal($('.booknav-tree a[href=".."]').length, 1);
+        assert.equal($('.booknav-tree').length, 1);
+        assert.equal($('.booknav-tree a[href="../.."]').length, 0);
+        assert.equal($('.booknav-tree a[href=".."]').length, 0);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="page1.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="page2.html"]').length, 1);
@@ -231,3 +265,10 @@ describe("Make Tree Test", function() {
     });
 });
 */
+
+
+describe("Finish up", function() {
+    it('should close the configuration', async function() {
+        await config.close();
+    });
+});

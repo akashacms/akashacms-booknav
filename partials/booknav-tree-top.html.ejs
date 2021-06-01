@@ -1,0 +1,20 @@
+<ul class="booknav-tree"><%
+for (var i = 0; i < paths.items.length; i++) {
+    var item = paths.items[i];
+    if (item.type === 'file') {
+        %><li><%
+            let title;
+            if (item.doc.docMetadata && item.doc.docMetadata.title) {
+                title = item.doc.docMetadata.title;
+            } else {
+                title = item.doc.renderPath;
+            }
+            %><a href="/<%= item.doc.renderPath %>"><%= title %></a><%
+            if (item.doc.docMetadata && item.doc.docMetadata.teaser) {
+                %>: <%= item.doc.docMetadata.teaser %><%
+            }
+        %></li><%
+    } else if (item.type === 'dir') {
+        %><%- renderTreeLevel(item.path) %><%
+    } %>
+<% } %></ul>
