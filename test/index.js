@@ -27,26 +27,26 @@ describe('build site', function() {
     });
 
     it('should run setup', async function() {
-        this.timeout(30000);
-        try {
-            await config.setup();
-        } catch (e) {
-            console.error(e);
-            throw e;
-        }
+        this.timeout(75000);
+        await akasha.cacheSetup(config);
+        await Promise.all([
+            akasha.setupDocuments(config),
+            akasha.setupAssets(config),
+            akasha.setupLayouts(config),
+            akasha.setupPartials(config)
+        ])
+        let filecache = await akasha.filecache;
+        await Promise.all([
+            filecache.documents.isReady(),
+            filecache.assets.isReady(),
+            filecache.layouts.isReady(),
+            filecache.partials.isReady()
+        ]);
     });
 
-    it('should successfully setup file caches', async function() {
+    it('should copy assets', async function() {
         this.timeout(75000);
-        try {
-            await (await akasha.filecache).documents.isReady();
-            // (await akasha.filecache).assets.isReady();
-            await (await akasha.filecache).layouts.isReady();
-            await (await akasha.filecache).partials.isReady();
-        } catch (e) {
-            console.error(e);
-            throw e;
-        }
+        await config.copyAssets();
     });
 
     it('should build site', async function() {
@@ -77,12 +77,13 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 3);
+        // NOTE that this file has a repeated instance of Folder 3
+        assert.equal($('.booknav-tree').length, 5);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
-        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 2);
-        assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 6);
+        assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 3);
+        assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 3);
 
         assert.equal($('.booknav-prevlink a[href="folder/index.html"]').length, 1);
         assert.equal($('.booknav-nextlink a[href="folder/folder/index.html"]').length, 1);
@@ -96,12 +97,12 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 2);
+        assert.equal($('.booknav-tree').length, 4);
         assert.equal($('.booknav-tree a[href="../index.html"]').length, 0);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
-        assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 6);
+        assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 3);
+        assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 3);
 
         assert.equal($('.booknav-prevlink a[href="folder/page2.html"]').length, 1);
         assert.equal($('.booknav-nextlink a[href="../index.html"]').length, 1);
@@ -269,6 +270,7 @@ describe("Make Tree Test", function() {
 
 describe("Finish up", function() {
     it('should close the configuration', async function() {
-        await config.close();
+        this.timeout(75000);
+        await akasha.closeCaches();
     });
 });

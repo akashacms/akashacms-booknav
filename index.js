@@ -137,11 +137,12 @@ class NextPrevElement extends mahabhuta.CustomElement {
         // console.log(`NextPrevElement root ${bookRoot}`, bookdocs);
         var docIndex = -1;
         for (var j = 0; bookdocs && j < bookdocs.length; j++) {
-            // console.log('looking for '+ metadata.document.path +' === '+ bookdocs[j].path);
-            if (bookdocs[j].path === metadata.document.path) {
+            // console.log('looking for '+ metadata.document.path +' === '+ bookdocs[j].vpath);
+            if (bookdocs[j].vpath === metadata.document.path) {
                 docIndex = j;
             }
         }
+        // console.log(`NexPrevElement docIndex ${docIndex}`);
         if (docIndex >= 0) {
             var prevDoc = docIndex === 0
                         ? bookdocs[bookdocs.length - 1]
