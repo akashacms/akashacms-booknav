@@ -170,7 +170,7 @@ function pathdata(documents, rootPath) {
     };
 
     for (let doc of documents) {
-        let parent = path.dirname(doc.path);
+        let parent = path.dirname(doc.vpath);
         if (parent === '.') parent = '/';
         if (parent.indexOf('./') === 0) parent = parent.substr(2);
         // console.log(`pathdata path ${doc.path} parent ${parent} === rootPath ${rootPath}`);
@@ -185,11 +185,11 @@ function pathdata(documents, rootPath) {
                 // console.log(`pathdata head set to ${util.inspect(ret.head)}`);
             }
         }
-        let gparent = path.dirname(path.dirname(doc.path));
+        let gparent = path.dirname(path.dirname(doc.vpath));
         if (gparent === '.') gparent = '/';
         if (gparent.indexOf('./') === 0) gparent = gparent.substr(2);
         if (gparent === rootPath) {
-            let childRoot = path.dirname(doc.path);
+            let childRoot = path.dirname(doc.vpath);
             if (childRoot === '.') childRoot = '/';
             if (childRoot.indexOf('./') === 0) {
                 childRoot = childRoot.substr(2);
@@ -197,7 +197,7 @@ function pathdata(documents, rootPath) {
             // console.log(`pathdata gparent ${gparent} === childRoot ${childRoot}`);
             let childItem;
             for (let item of ret.items) {
-                if (item.type === 'dir' && item.path === childRoot) {
+                if (item.type === 'dir' && item.vpath === childRoot) {
                     childItem = item;
                     break;
                 }
