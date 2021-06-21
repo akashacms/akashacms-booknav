@@ -57,8 +57,14 @@ module.exports.mahabhutaArray = function(options) {
 
 async function findBookDocs(config, docDirPath) {
 
+    // Performance testing
+    // const _start = new Date();
+
     // console.log(`findBookDocs ${docDirPath}`);
 
+    // Maybe we don't need to cache this data beyond the FileCache
+    //
+    /* 
     const cache = (await akasha.cache);
     // console.log(`findBookDocs after await cache ${docDirPath}`);
     const booknav = cache.getCache('booknav', { create: true });
@@ -71,19 +77,34 @@ async function findBookDocs(config, docDirPath) {
         // console.log(`findBookDocs after await cache ${docDirPath} ==> ${cachedBookDocs[0].results}`);
         return cachedBookDocs[0].results;
     }
+    */
+
+    // Performance testing
+    // console.log(`findBookDocs  after cache ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
     const documents = (await akasha.filecache).documents;
     // await documents.isReady();
+    // Performance testing
+    // console.log(`findBookDocs  after documents ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
     // console.log(`findBookDocs isReady ${docDirPath}`);
 
     let results = documents.search(config, {
-        rootPath: docDirPath,
-        renderglob: '**/*.html',
+        // For performance reasons, use pathmatch and renderpathmatch.
+        // These are added to the Selector given to ForerunnerDB, and act
+        // to decrease the result set and therefore the amount of processing
+        // within the search function.
+
+        // rootPath: docDirPath,
+        pathmatch: new RegExp(`^${docDirPath}\/`),
+        renderpathmatch: /\.html$/
+        // renderglob: '**/*.html',
         // renderers: [ akasha.HTMLRenderer ]
     });
     // console.log(results);
 
+    // Performance testing
+    // console.log(`findBookDocs  after search ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
     // TODO documents function to match everything within the directory?
     // TODO or simply use documents.paths() and filter it on this end?
@@ -116,10 +137,18 @@ async function findBookDocs(config, docDirPath) {
         else if (a.renderPath === b.renderPath) return 0;
         else return 1;
     });
-    booknav.insert({
-        docDirPath: docDirPath,
-        results: results
-    });
+    // Performance testing
+    // console.log(`findBookDocs  after sort ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
+    
+    // Maybe we don't need to cache this data beyond the FileCache
+    //
+    // booknav.insert({
+    //    docDirPath: docDirPath,
+    //    results: results
+    // });
+    
+    // Performance testing
+    // console.log(`findBookDocs  after booknav.insert ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
     return results;
 };
 
@@ -220,12 +249,16 @@ function pathdata(documents, rootPath) {
 class ChildTreeElement extends mahabhuta.CustomElement {
     get elementName() { return "book-child-tree"; }
     async process($element, metadata, dirty) {
+        // Performance testing
+        // const _start = new Date();
         const template = $element.attr('template');
         const childTemplate = $element.attr('child-template');
 
         const docDirPath = path.dirname(metadata.document.path);
         if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
         let bookdocs = await findBookDocs(this.array.options.config, docDirPath);
+        // Performance testing
+        // console.log(`book-child-tree ${metadata.document.path} findBookDocs bookdocs.length ${bookdocs.length} ${(new Date() - _start) / 1000} seconds`);
         if (!bookdocs) throw new Error("Did not find bookdocs for "+ docDirPath);
 
         const renderTreeLevel = (dir) => {
@@ -249,6 +282,8 @@ class ChildTreeElement extends mahabhuta.CustomElement {
 
         // console.log(`book-child-tree rendering tree for ${metadata.document.path} ${docDirPath}`);
         let paths = pathdata(bookdocs, docDirPath);
+        // Performance testing
+        // console.log(`book-child-tree ${metadata.document.path} pathdata paths.length ${paths.length} ${(new Date() - _start) / 1000} seconds`);
         let ret = await akasha.partial(this.array.options.config,
             template ? template : "booknav-tree-top.html.ejs", {
             paths: paths, renderTreeLevel
@@ -261,6 +296,8 @@ class ChildTreeElement extends mahabhuta.CustomElement {
             }
         }*/
         // console.log(`book-child-tree ${docDirPath} ==> ${ret}`);
+        // Performance testing
+        // console.log(`book-child-tree ${metadata.document.path} RENDERED ${(new Date() - _start) / 1000} seconds`);
         return ret;
 
         /*
