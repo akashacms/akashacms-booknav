@@ -78,12 +78,12 @@ describe('check pages', function() {
         assert.isString(html, 'result isString');
 
         // NOTE that this file has a repeated instance of Folder 3
-        assert.equal($('.booknav-tree').length, 5);
+        assert.equal($('.booknav-tree').length, 4);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
-        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 6);
-        assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 3);
-        assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 3);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 1);
 
         assert.equal($('.booknav-prevlink a[href="folder/index.html"]').length, 1);
         assert.equal($('.booknav-nextlink a[href="folder/folder/index.html"]').length, 1);
@@ -97,14 +97,14 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 4);
+        assert.equal($('.booknav-tree').length, 3);
         assert.equal($('.booknav-tree a[href="../index.html"]').length, 0);
         assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 6);
-        assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 3);
-        assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 3);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 1);
 
-        assert.equal($('.booknav-prevlink a[href="folder/page2.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="folder2/page2.html"]').length, 1);
         assert.equal($('.booknav-nextlink a[href="../index.html"]').length, 1);
     });
 
@@ -166,7 +166,7 @@ describe('check pages', function() {
         assert.include($('h1').html(), "Page 2");
 
         assert.equal($('.booknav-prevlink a[href="page1.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="../index.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="../folder2/index.html"]').length, 1);
     });
 });
 

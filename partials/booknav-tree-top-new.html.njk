@@ -1,0 +1,16 @@
+<ul class="booknav-tree">
+    <li><a href="/{{ rootItem.renderPath }}">{{ rootItem.docMetadata.title }}</a>
+    {% if siblings.length >= 1 or childItems.length >= 1 %}
+        <ul>
+            {% for sibling in siblings %}
+            <li>
+                <a href="/{{ sibling.renderPath }}">{{ sibling.docMetadata.title }}</a>
+            </li>
+            {% endfor %}
+            {% for child in childItems %}
+            {{ renderIndexItem(child) }}
+            {% endfor %}
+        </ul>
+    {% endif %}
+    </li>
+</ul>

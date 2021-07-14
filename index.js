@@ -62,23 +62,6 @@ async function findBookDocs(config, docDirPath) {
 
     // console.log(`findBookDocs ${docDirPath}`);
 
-    // Maybe we don't need to cache this data beyond the FileCache
-    //
-    /* 
-    const cache = (await akasha.cache);
-    // console.log(`findBookDocs after await cache ${docDirPath}`);
-    const booknav = cache.getCache('booknav', { create: true });
-    const cachedBookDocs = booknav.find({
-        docDirPath: { $eeq: docDirPath }
-    });
-    if (cachedBookDocs
-     && Array.isArray(cachedBookDocs)
-     && cachedBookDocs.length > 0) {
-        // console.log(`findBookDocs after await cache ${docDirPath} ==> ${cachedBookDocs[0].results}`);
-        return cachedBookDocs[0].results;
-    }
-    */
-
     // Performance testing
     // console.log(`findBookDocs  after cache ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
@@ -88,32 +71,28 @@ async function findBookDocs(config, docDirPath) {
     // console.log(`findBookDocs  after documents ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
     // console.log(`findBookDocs isReady ${docDirPath}`);
-
-    let results = documents.search(config, {
+    let selector = {
         // For performance reasons, use pathmatch and renderpathmatch.
         // These are added to the Selector given to ForerunnerDB, and act
         // to decrease the result set and therefore the amount of processing
         // within the search function.
 
         // rootPath: docDirPath,
-        pathmatch: new RegExp(`^${docDirPath}\/`),
         renderpathmatch: /\.html$/
         // renderglob: '**/*.html',
         // renderers: [ akasha.HTMLRenderer ]
-    });
+    };
+    if (docDirPath && docDirPath !== '/') {
+        selector.pathmatch = new RegExp(`^${docDirPath}\/`)
+    }
+
+
+    let results = documents.search(config, selector);
     // console.log(results);
 
     // Performance testing
     // console.log(`findBookDocs  after search ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
-    // TODO documents function to match everything within the directory?
-    // TODO or simply use documents.paths() and filter it on this end?
-
-    /* let results = await akasha.documentSearch(config, {
-        rootPath: docDirPath,
-        renderers: [ akasha.HTMLRenderer ]
-    }); */
-    // log(`findBookDocs ${util.inspect(results)}`);
     results.sort((a,b) => {
         var indexre = /^(.*)\/([^\/]+\.html)$/;
         var amatches = a.renderPath.match(indexre);
@@ -140,15 +119,6 @@ async function findBookDocs(config, docDirPath) {
     // Performance testing
     // console.log(`findBookDocs  after sort ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
     
-    // Maybe we don't need to cache this data beyond the FileCache
-    //
-    // booknav.insert({
-    //    docDirPath: docDirPath,
-    //    results: results
-    // });
-    
-    // Performance testing
-    // console.log(`findBookDocs  after booknav.insert ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
     return results;
 };
 
@@ -156,14 +126,15 @@ async function findBookDocs(config, docDirPath) {
 class NextPrevElement extends mahabhuta.CustomElement {
     get elementName() { return "book-next-prev"; }
     async process($element, metadata, dirty) {
-        var bookRoot = $element.attr('book-root');
+        let bookRoot = $element.attr('book-root');
         if (bookRoot && bookRoot.charAt(0) === '/') {
             bookRoot = bookRoot.substring(1);
         }
         bookRoot = path.dirname(bookRoot);
+        if (bookRoot === '.') bookRoot = '/';
         // console.log(`NextPrevElement root ${bookRoot}`);
         let bookdocs = await findBookDocs(this.array.options.config, bookRoot);
-        // console.log(`NextPrevElement root ${bookRoot}`, bookdocs);
+        // console.log(`NextPrevElement root ${bookRoot} ${bookdocs.length}`);
         var docIndex = -1;
         for (var j = 0; bookdocs && j < bookdocs.length; j++) {
             // console.log('looking for '+ metadata.document.path +' === '+ bookdocs[j].vpath);
@@ -190,6 +161,7 @@ class NextPrevElement extends mahabhuta.CustomElement {
     }
 }
 
+/*
 function pathdata(documents, rootPath) {
     const ret = {
         head: {
@@ -245,12 +217,63 @@ function pathdata(documents, rootPath) {
     // console.log(`pathdata ${rootPath} ${util.inspect(ret)}`);
     return ret;
 }
+*/
 
 class ChildTreeElement extends mahabhuta.CustomElement {
     get elementName() { return "book-child-tree"; }
     async process($element, metadata, dirty) {
+
         // Performance testing
-        // const _start = new Date();
+        const _start = new Date();
+        const template = $element.attr('template');
+        const childTemplate = $element.attr('child-template');
+
+        const config = this.array.options.config;
+
+        const documents = (await akasha.filecache).documents;
+
+        let docDirPath = path.dirname(metadata.document.path);
+        if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
+        if (docDirPath === '.') docDirPath = '/';
+        const indexes = documents.indexFiles(docDirPath);
+
+        let rootItem;
+        for (let index of indexes) {
+            if (index.dirname === docDirPath) {
+                rootItem = index;
+                break;
+            }
+        }
+        if (!rootItem) {
+            throw new Error(`Did not find root (${docDirPath}) index item in path ${metadata.document.path} indexes ${indexes.length}`);
+        }
+
+        const renderIndexItem = function(rootItem) {
+            // console.log(`renderIndexItem `, rootItem);
+            const siblings = documents.siblings(rootItem.vpath);
+            const childItems = [];
+            for (let index of indexes) {
+                if (path.dirname(index.dirname) === rootItem.dirname
+                 && index.vpath !== rootItem.vpath) {
+                    childItems.push(index);
+                }
+            }
+            return akasha.partialSync(config,
+                template ? template : "booknav-tree-top-new.html.njk", {
+                    rootItem, siblings, childItems, renderIndexItem
+                });
+        };
+
+        return renderIndexItem(rootItem);
+    }
+}
+
+/*
+class ChildTreeElement extends mahabhuta.CustomElement {
+    get elementName() { return "book-child-tree"; }
+    async process($element, metadata, dirty) {
+        // Performance testing
+        const _start = new Date();
         const template = $element.attr('template');
         const childTemplate = $element.attr('child-template');
 
@@ -258,8 +281,22 @@ class ChildTreeElement extends mahabhuta.CustomElement {
         if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
         let bookdocs = await findBookDocs(this.array.options.config, docDirPath);
         // Performance testing
-        // console.log(`book-child-tree ${metadata.document.path} findBookDocs bookdocs.length ${bookdocs.length} ${(new Date() - _start) / 1000} seconds`);
+        console.log(`book-child-tree ${metadata.document.path} findBookDocs bookdocs.length ${bookdocs.length} ${(new Date() - _start) / 1000} seconds`);
         if (!bookdocs) throw new Error("Did not find bookdocs for "+ docDirPath);
+
+        let booktree = await findBookTree(docDirPath);
+        console.log(`book-child-tree ${metadata.document.path} findBookDocs booktree.length ${booktree.length} ${(new Date() - _start) / 1000} seconds`);
+
+        for (let bookitem of booktree) {
+            console.log(`@@ book-child-tree item for ${bookitem.vpath}`);
+        }
+
+        for (let bookitem of booktree) {
+            console.log(`book-child-tree item for ${bookitem.vpath}`);
+            for (let sibling of bookitem.siblings) {
+                console.log(`\t${sibling.vpath}`);
+            }
+        }
 
         const renderTreeLevel = (dir) => {
             // console.log(`renderTreeLevel ${dir}`);
@@ -275,7 +312,7 @@ class ChildTreeElement extends mahabhuta.CustomElement {
                 } else if (item.type === 'dir') {
                     console.log(`renderTreeLevel item ${dir} ==> ${util.inspect(item)}`);
                 }
-            } */
+            } *--/
             // console.log(`renderTreeLevel ${dir} ==> ${ret}`);
             return ret;
         };
@@ -283,7 +320,7 @@ class ChildTreeElement extends mahabhuta.CustomElement {
         // console.log(`book-child-tree rendering tree for ${metadata.document.path} ${docDirPath}`);
         let paths = pathdata(bookdocs, docDirPath);
         // Performance testing
-        // console.log(`book-child-tree ${metadata.document.path} pathdata paths.length ${paths.length} ${(new Date() - _start) / 1000} seconds`);
+        console.log(`book-child-tree ${metadata.document.path} pathdata paths.length ${paths.length} ${(new Date() - _start) / 1000} seconds`);
         let ret = await akasha.partial(this.array.options.config,
             template ? template : "booknav-tree-top.html.ejs", {
             paths: paths, renderTreeLevel
@@ -294,10 +331,10 @@ class ChildTreeElement extends mahabhuta.CustomElement {
             } else if (item.type === 'dir') {
                 console.log(`renderTreeLevel item ${docDirPath} ==> ${util.inspect(item)}`);
             }
-        }*/
+        }*--/
         // console.log(`book-child-tree ${docDirPath} ==> ${ret}`);
         // Performance testing
-        // console.log(`book-child-tree ${metadata.document.path} RENDERED ${(new Date() - _start) / 1000} seconds`);
+        console.log(`book-child-tree ${metadata.document.path} RENDERED ${(new Date() - _start) / 1000} seconds`);
         return ret;
 
         /*
@@ -349,7 +386,8 @@ class ChildTreeElement extends mahabhuta.CustomElement {
             tree: bookTree,
             urlForDoc, urlForDir, renderSubTree
         })
-        */
+        *--/
     }
 }
 
+*/
