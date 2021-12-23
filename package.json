@@ -6,12 +6,27 @@
   },
   "name": "@akashacms/plugins-booknav",
   "description": "A plugin for AkashaCMS that generates book style navigation frames",
+  "keywords": [
+    "content management system",
+    "cms",
+    "static site generator",
+    "static file server",
+    "web development",
+    "build and deployment",
+    "renderer",
+    "templating",
+    "templates",
+    "website",
+    "website builder",
+    "blog",
+    "akashacms"
+  ],
   "homepage": "https://akashacms.com/plugins/booknav/index.html",
   "repository": {
     "type": "git",
     "url": "git://github.com/akashacms/akashacms-booknav.git"
   },
-  "version": "0.7.3",
+  "version": "0.8.0",
   "engines": {
     "node": ">=12.2"
   },
