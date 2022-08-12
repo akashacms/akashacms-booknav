@@ -29,19 +29,7 @@ describe('build site', function() {
     it('should run setup', async function() {
         this.timeout(75000);
         await akasha.cacheSetup(config);
-        await Promise.all([
-            akasha.setupDocuments(config),
-            akasha.setupAssets(config),
-            akasha.setupLayouts(config),
-            akasha.setupPartials(config)
-        ])
-        let filecache = await akasha.filecache;
-        await Promise.all([
-            filecache.documents.isReady(),
-            filecache.assets.isReady(),
-            filecache.layouts.isReady(),
-            filecache.partials.isReady()
-        ]);
+        await akasha.fileCachesReady(config);
     });
 
     it('should copy assets', async function() {

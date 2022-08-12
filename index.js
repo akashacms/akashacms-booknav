@@ -65,7 +65,8 @@ async function findBookDocs(config, docDirPath) {
     // Performance testing
     // console.log(`findBookDocs  after cache ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
-    const documents = (await akasha.filecache).documents;
+    const filecache = await akasha.filecache;
+    const documents = filecache.documents;
     // await documents.isReady();
     // Performance testing
     // console.log(`findBookDocs  after documents ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
@@ -78,44 +79,44 @@ async function findBookDocs(config, docDirPath) {
         // within the search function.
 
         // rootPath: docDirPath,
-        renderpathmatch: /\.html$/
+        renderpathmatch: /\.html$/,
         // renderglob: '**/*.html',
         // renderers: [ akasha.HTMLRenderer ]
+        sortFunc: (a,b) => {
+            var indexre = /^(.*)\/([^\/]+\.html)$/;
+            var amatches = a.renderPath.match(indexre);
+            var bmatches = b.renderPath.match(indexre);
+            if (!amatches)
+                return -1;
+            else if (!bmatches)
+                return 1;
+            if (amatches[1] === bmatches[1]) {
+                if (amatches[2] === "index.html") {
+                    return -1;
+                } else if (bmatches[2] === "index.html") {
+                    return 1;
+                } else if (amatches[2] < bmatches[2]) {
+                    return -1;
+                } else if (amatches[2] === bmatches[2]) {
+                    return 0;
+                } else return 1;
+            }
+            if (a.renderPath < b.renderPath) return -1;
+            else if (a.renderPath === b.renderPath) return 0;
+            else return 1;
+        }
     };
     if (docDirPath && docDirPath !== '/') {
         selector.pathmatch = new RegExp(`^${docDirPath}\/`)
     }
 
 
-    let results = documents.search(config, selector);
+    let results = documents.search(selector);
     // console.log(results);
 
     // Performance testing
     // console.log(`findBookDocs  after search ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
-    results.sort((a,b) => {
-        var indexre = /^(.*)\/([^\/]+\.html)$/;
-        var amatches = a.renderPath.match(indexre);
-        var bmatches = b.renderPath.match(indexre);
-        if (!amatches)
-            return -1;
-        else if (!bmatches)
-            return 1;
-        if (amatches[1] === bmatches[1]) {
-            if (amatches[2] === "index.html") {
-                return -1;
-            } else if (bmatches[2] === "index.html") {
-                return 1;
-            } else if (amatches[2] < bmatches[2]) {
-                return -1;
-            } else if (amatches[2] === bmatches[2]) {
-                return 0;
-            } else return 1;
-        }
-        if (a.renderPath < b.renderPath) return -1;
-        else if (a.renderPath === b.renderPath) return 0;
-        else return 1;
-    });
     // Performance testing
     // console.log(`findBookDocs  after sort ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
     
@@ -230,7 +231,8 @@ class ChildTreeElement extends mahabhuta.CustomElement {
 
         const config = this.array.options.config;
 
-        const documents = (await akasha.filecache).documents;
+        const filecache = await akasha.filecache;
+        const documents = filecache.documents;
 
         let docDirPath = path.dirname(metadata.document.path);
         if (docDirPath.startsWith('/')) docDirPath = docDirPath.substring(1);
