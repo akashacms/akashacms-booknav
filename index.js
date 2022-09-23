@@ -19,7 +19,6 @@
 
 'use strict';
 
-const fs       = require('fs-extra');
 const path     = require('path');
 const util     = require('util');
 const akasha   = require('akasharender');
@@ -28,7 +27,6 @@ const mahabhuta = akasha.mahabhuta;
 const pluginName = "@akashacms/plugins-booknav";
 
 const _plugin_config = Symbol('config');
-const _plugin_options = Symbol('options');
 
 module.exports = class BooknavPlugin extends akasha.Plugin {
 	constructor() {
@@ -37,14 +35,13 @@ module.exports = class BooknavPlugin extends akasha.Plugin {
 
     configure(config, options) {
         this[_plugin_config] = config;
-        this[_plugin_options] = options;
+        this.options = options;
         options.config = config;
 		config.addPartialsDir(path.join(__dirname, 'partials'));
         config.addMahabhuta(module.exports.mahabhutaArray(options));
 	}
 
     get config() { return this[_plugin_config]; }
-    get options() { return this[_plugin_options]; }
 
 }
 
@@ -65,7 +62,7 @@ async function findBookDocs(config, docDirPath) {
     // Performance testing
     // console.log(`findBookDocs  after cache ${docDirPath} ${(new Date() - _start) / 1000} seconds`);
 
-    const filecache = await akasha.filecache;
+    const filecache = config.akasha.filecache;
     const documents = filecache.documents;
     // await documents.isReady();
     // Performance testing
@@ -153,7 +150,7 @@ class NextPrevElement extends mahabhuta.CustomElement {
                         : bookdocs[docIndex + 1];
             // console.log(`NextPrevElement prevDoc `, prevDoc);
             // console.log(`NextPrevElement nextDoc `, nextDoc);
-            return akasha.partial(this.array.options.config, 'booknav-next-prev.html.ejs', {
+            return this.array.options.config.akasha.partial(this.array.options.config, 'booknav-next-prev.html.ejs', {
                 prevDoc, nextDoc // , thisDoc: docEntry, documents: bookDocs
             });
         } else {
@@ -250,6 +247,8 @@ class ChildTreeElement extends mahabhuta.CustomElement {
             throw new Error(`Did not find root (${docDirPath}) index item in path ${metadata.document.path} indexes ${indexes.length}`);
         }
 
+        const FUNC = this;
+
         const renderIndexItem = function(rootItem) {
             // console.log(`renderIndexItem `, rootItem);
             const siblings = documents.siblings(rootItem.vpath);
@@ -260,7 +259,7 @@ class ChildTreeElement extends mahabhuta.CustomElement {
                     childItems.push(index);
                 }
             }
-            return akasha.partialSync(config,
+            return FUNC.array.options.config.akasha.partialSync(config,
                 template ? template : "booknav-tree-top-new.html.njk", {
                     rootItem, siblings, childItems, renderIndexItem
                 });

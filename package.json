@@ -34,7 +34,6 @@
       "dopublish": "npm publish --access public"
   },
   "dependencies": {
-    "fs-extra": "*"
   },
   "devDependencies": {
   }

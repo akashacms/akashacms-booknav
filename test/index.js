@@ -28,8 +28,8 @@ describe('build site', function() {
 
     it('should run setup', async function() {
         this.timeout(75000);
-        await akasha.cacheSetup(config);
-        await akasha.fileCachesReady(config);
+        await akasha.setup(config);
+        // await akasha.fileCachesReady(config);
     });
 
     it('should copy assets', async function() {
