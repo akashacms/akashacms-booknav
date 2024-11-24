@@ -1,0 +1,28 @@
+
+{% macro renderRootItem(root) %}
+    <li>
+        <a href="/{{ root.rootItem.renderPath }}">
+            {{- root.rootItem.docMetadata.title -}}
+        </a>
+        <ul class="booknav-tree-items">
+        {%- if root.items.length >= 1 -%}
+            {%- for item in root.items %}
+            <li class="booknav-tree-item"><a href="/{{ item.renderPath }}">
+                {{- item.docMetadata.title -}}
+            </a></li>
+            {% endfor -%}
+        {%- endif -%}
+        {% if root.childFolders.length >= 1 %}
+            <li><ul class="booknav-tree-child-list">
+                {% for childFolder in root.childFolders -%}
+                {{ renderRootItem(childFolder) }}
+                {%- endfor %}
+            </ul></li>
+        {% endif %}
+        </ul>
+    </li>
+{% endmacro %}
+
+<ul class="booknav-tree">
+    {{ renderRootItem(rootItem) }}
+</ul>

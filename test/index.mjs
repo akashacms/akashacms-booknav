@@ -1,11 +1,11 @@
-'use strict';
 
-const akasha   = require('akasharender');
-const assert = require('chai').assert;
-const booknav = require('../index');
-const util = require('util');
+import util from 'node:util';
+import akasha from 'akasharender';
+import { assert } from 'chai';
+import { BooknavPlugin } from '../index.mjs';
 
 let config;
+const __dirname = import.meta.dirname;
 
 describe('build site', function() {
     it('should construct configuration', async function() {
@@ -16,7 +16,7 @@ describe('build site', function() {
         config.configDir = __dirname;
         config.addLayoutsDir('layouts')
             .addDocumentsDir('documents');
-        config.use(booknav);
+        config.use(BooknavPlugin);
         config.setMahabhutaConfig({
             recognizeSelfClosing: true,
             recognizeCDATA: true,
@@ -66,15 +66,16 @@ describe('check pages', function() {
         assert.isString(html, 'result isString');
 
         // NOTE that this file has a repeated instance of Folder 3
-        assert.equal($('.booknav-tree').length, 4);
-        assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree').length, 1);
+        assert.equal($('.booknav-tree-items').length, 4);
+        assert.equal($('.booknav-tree a[href="index.html"]').length, 2);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
+        assert.equal($('.booknav-tree a[href="folder/folder/index.html"]').length, 2);
         assert.equal($('.booknav-tree a[href="folder/folder/page1.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="folder/folder/page2.html"]').length, 1);
 
         assert.equal($('.booknav-prevlink a[href="folder/index.html"]').length, 1);
-        assert.equal($('.booknav-nextlink a[href="folder/folder/index.html"]').length, 1);
+        assert.equal($('.booknav-nextlink a[href="../index.html"]').length, 1);
     });
 
     it('should have correct /folder/folder/index.html', async function() {
@@ -85,10 +86,10 @@ describe('check pages', function() {
         assert.exists(html, 'result exists');
         assert.isString(html, 'result isString');
 
-        assert.equal($('.booknav-tree').length, 3);
+        assert.equal($('.booknav-tree').length, 1);
         assert.equal($('.booknav-tree a[href="../index.html"]').length, 0);
-        assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
-        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="index.html"]').length, 2);
+        assert.equal($('.booknav-tree a[href="folder/index.html"]').length, 2);
         assert.equal($('.booknav-tree a[href="folder/page1.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="folder/page2.html"]').length, 1);
 
@@ -107,11 +108,12 @@ describe('check pages', function() {
         assert.equal($('.booknav-tree').length, 1);
         assert.equal($('.booknav-tree a[href="../.."]').length, 0);
         assert.equal($('.booknav-tree a[href=".."]').length, 0);
-        assert.equal($('.booknav-tree a[href="index.html"]').length, 1);
+        assert.equal($('.booknav-tree a[href="index.html"]').length, 2);
         assert.equal($('.booknav-tree a[href="page1.html"]').length, 1);
         assert.equal($('.booknav-tree a[href="page2.html"]').length, 1);
 
-        assert.equal($('.booknav-prevlink a[href="../../index.html"]').length, 1);
+        assert.equal($('.booknav-prevlink a[href="../../index.html"]').length, 0);
+        assert.equal($('.booknav-prevlink a[href="../../../index.html"]').length, 1);
         assert.equal($('.booknav-nextlink a[href="page1.html"]').length, 1);
     });
 

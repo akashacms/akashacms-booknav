@@ -2,10 +2,10 @@
   "name": "akashacms-booknav-test",
   "version": "1.0.0",
   "description": "Test suite for akashacms-booknav module",
-  "main": "index.js",
+  "main": "index.mjs",
   "scripts": {
     "test": "mocha ./index",
-    "setup": "npm install && cd .. && npm install && npm install akashacms/akasharender#0.9 --no-save",
+    "setup": "npm install && cd .. && npm install && npm install ../akasharender --no-save",
     "clean": "rm -rf node_modules out"
   },
   "author": "",
