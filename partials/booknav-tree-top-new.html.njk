@@ -8,6 +8,7 @@
             </li>
             {% endfor %}
             {% for child in childItems %}
+            <p>{{ child.vpath }}</p>
             {{ renderIndexItem(child) }}
             {% endfor %}
         </ul>

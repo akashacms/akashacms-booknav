@@ -1,13 +1,14 @@
 
-const akasha   = require('akasharender');
-const booknav = require('../index');
+import akasha from 'akasharender';
+import { BooknavPlugin } from '../index.mjs';
+const __dirname = import.meta.dirname;
 
-config = new akasha.Configuration();
+const config = new akasha.Configuration();
 config.rootURL("https://example.akashacms.com");
 config.configDir = __dirname;
 config.addLayoutsDir('layouts')
     .addDocumentsDir('documents');
-config.use(booknav);
+config.use(BooknavPlugin);
 config.setMahabhutaConfig({
     recognizeSelfClosing: true,
     recognizeCDATA: true,
@@ -15,5 +16,4 @@ config.setMahabhutaConfig({
 });
 config.prepare();
 
-module.exports = config;
-
+export default config;
