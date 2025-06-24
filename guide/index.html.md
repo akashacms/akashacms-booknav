@@ -14,7 +14,7 @@ With an AkashaCMS website setup, add the following to `package.json`
 ```
   "dependencies": {
     ...
-    "@akashacms/plugins-booknav": "^0.7.x",
+    "@akashacms/plugins-booknav": "^0.9.x",
     ...
   }
 ```
@@ -23,10 +23,15 @@ Once added to `package.json` run: `npm install`
 
 # Configuration
 
-In `config.js` for the website:
+In `config.mjs` for the website:
 
 ```js
-config.use(require('@akashacms/plugins-booknav'));
+import { BooknavPlugin } from '@akashacms/plugins-booknav';
+// ...
+config.
+    // ...
+    .use(BooknavPlugin)
+    // ...
 ```
 
 ## Page layout template
