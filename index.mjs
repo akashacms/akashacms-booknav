@@ -19,7 +19,12 @@
 
 import * as util from 'util';
 import * as path from 'path';
-import akasha from 'akasharender';
+import akasha, {
+    Configuration,
+    CustomElement,
+    Munger,
+    PageProcessor
+} from 'akasharender';
 const mahabhuta = akasha.mahabhuta;
 
 const pluginName = "@akashacms/plugins-booknav";
@@ -39,17 +44,22 @@ export class BooknavPlugin extends akasha.Plugin {
         this.options = options;
         options.config = config;
 		config.addPartialsDir(path.join(__dirname, 'partials'));
-        config.addMahabhuta(mahabhutaArray(options));
+        config.addMahabhuta(mahabhutaArray(options, config, this.akasha, this));
 	}
 
     get config() { return this[_plugin_config]; }
 
 }
 
-export function mahabhutaArray(options) {
+export function mahabhutaArray(
+            options,
+            config, // ?: Configuration,
+            akasha, // ?: any,
+            plugin  // ?: Plugin) {
+) {
     let ret = new mahabhuta.MahafuncArray(pluginName, options);
-    ret.addMahafunc(new NextPrevElement());
-    ret.addMahafunc(new ChildTreeElement());
+    ret.addMahafunc(new NextPrevElement(config, akasha, plugin));
+    ret.addMahafunc(new ChildTreeElement(config, akasha, plugin));
     return ret;
 };
 
@@ -127,7 +137,7 @@ async function findBookDocs(config, docDirPath) {
 };
 
 
-class NextPrevElement extends mahabhuta.CustomElement {
+class NextPrevElement extends CustomElement {
     get elementName() { return "book-next-prev"; }
     async process($element, metadata, dirty) {
         let bookRoot = $element.attr('book-root');
@@ -137,7 +147,7 @@ class NextPrevElement extends mahabhuta.CustomElement {
         bookRoot = path.dirname(bookRoot);
         if (bookRoot === '.') bookRoot = '/';
         // console.log(`NextPrevElement root ${bookRoot}`);
-        let bookdocs = await findBookDocs(this.array.options.config, bookRoot);
+        let bookdocs = await findBookDocs(this.config, bookRoot);
         // console.log(`NextPrevElement root ${bookRoot} ${bookdocs.length}`);
         var docIndex = -1;
         for (var j = 0; bookdocs && j < bookdocs.length; j++) {
@@ -156,7 +166,7 @@ class NextPrevElement extends mahabhuta.CustomElement {
                         : bookdocs[docIndex + 1];
             // console.log(`NextPrevElement prevDoc `, prevDoc);
             // console.log(`NextPrevElement nextDoc `, nextDoc);
-            return this.array.options.config.akasha.partial(this.array.options.config, 'booknav-next-prev.html.ejs', {
+            return this.akasha.partial(this.config, 'booknav-next-prev.html.ejs', {
                 prevDoc, nextDoc // , thisDoc: docEntry, documents: bookDocs
             });
         } else {
@@ -165,7 +175,7 @@ class NextPrevElement extends mahabhuta.CustomElement {
     }
 }
 
-class ChildTreeElement extends mahabhuta.CustomElement {
+class ChildTreeElement extends CustomElement {
     get elementName() { return "book-child-tree"; }
     async process($element, metadata, dirty) {
 
@@ -174,7 +184,7 @@ class ChildTreeElement extends mahabhuta.CustomElement {
         const template = $element.attr('template');
         const childTemplate = $element.attr('child-template');
 
-        const config = this.array.options.config;
+        const config = this.config;
 
         const filecache = await akasha.filecache;
         const documents = filecache.documentsCache;
@@ -200,7 +210,7 @@ class ChildTreeElement extends mahabhuta.CustomElement {
         // const FUNC = this;
         const tree = await documents.childItemTree(metadata.document.path);
 
-        const ret = this.array.options.config.akasha.partialSync(config,
+        const ret = this.akasha.partialSync(config,
             template ? template : "booknav-child-item-tree.html.njk",
             {
                 rootItem: tree

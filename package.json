@@ -28,9 +28,9 @@
   },
   "main": "index.mjs",
   "type": "module",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "engines": {
-    "node": ">=20.x"
+    "node": ">=24.x"
   },
   "scripts": {
       "dopublish": "npm publish --access public"
